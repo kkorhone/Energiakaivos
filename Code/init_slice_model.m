@@ -162,13 +162,14 @@ fprintf(1, 'Done.\n');
 %slice.createSelections(geometry);
 boreholes = {
     Borehole([0 0 0], -90, 0, 0, 100, 0.5, 0.1, 0.08, 0.05)
-    %Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
-    %Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
-    %Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
+    Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
+    Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
+    Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
 };
 for i = 1:length(boreholes)
     boreholes{i}.createGeometry(geometry);
     boreholes{i}.createSelections(geometry);
+    boreholes{i}.createMesh(mesh);
 end
 return
 %%%

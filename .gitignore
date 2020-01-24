@@ -1,1 +1,4 @@
 *.pyc
+*.mph
+*.asv
+*.lock
