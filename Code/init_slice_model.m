@@ -1,4 +1,4 @@
-function model = init_slice_model_v1(borehole_tilts, slice_width, num_slices, varargin)
+function model = init_slice_model(borehole_tilts, slice_width, num_slices, varargin)
 
 % =========================================================================
 % Handles the input parameters.
@@ -19,7 +19,9 @@ if borehole_tilts(1) > -90
 end
 
 L_borehole = 300;
-d_borehole = 76;
+d_borehole = 76e-3;
+d_outer = 50e-3;
+d_inner = 32e-3;
 buffer_width = 400;
 borehole_offset = 10;
 r_buffer = 0.5;
@@ -30,6 +32,10 @@ for i = 1:length(varargin)/2
         L_borehole = varargin{(i-1)*2+2};
     elseif strcmp(varargin{(i-1)*2+1}, 'd_borehole')
         d_borehole = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'd_outer')
+        d_outer = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'd_inner')
+        d_inner = varargin{(i-1)*2+2};
     elseif strcmp(varargin{(i-1)*2+1}, 'borehole_offset')
         borehole_offset = varargin{(i-1)*2+2};
     elseif strcmp(varargin{(i-1)*2+1}, 'r_buffer')
@@ -47,8 +53,20 @@ if d_borehole <= 0
     error('Borehole diameter must be positive.');
 end
 
-if d_borehole < 76 || d_borehole > 200
+if d_borehole < 76e-3 || d_borehole > 200e-3
     warning('Borehole diameter should be 76 <= d_borehole <= 200');
+end
+
+if d_outer >= d_borehole
+    warning('Outer pipe wall diameter must be <= %.0f mm.', d_borehole);
+end
+
+if d_inner >= d_outer
+    warning('Inner pipe wall diameter must be <= %.0f mm.', d_outer);
+end
+
+if d_inner == 0
+    warning('Inner pipe wall diameter can not be 0 mm.');
 end
 
 if L_borehole <= 0
@@ -95,7 +113,9 @@ end
 
 fprintf(1, 'init_slice_model: slice_width = %f m.\n', slice_width);
 fprintf(1, 'init_slice_model: num_slices = %f deg.\n', num_slices);
-fprintf(1, 'init_slice_model: d_borehole = %f mm.\n', d_borehole);
+fprintf(1, 'init_slice_model: d_borehole = %f mm.\n', d_borehole*1e3);
+fprintf(1, 'init_slice_model: d_outer = %f mm.\n', d_outer*1e3);
+fprintf(1, 'init_slice_model: d_inner = %f mm.\n', d_inner*1e3);
 fprintf(1, 'init_slice_model: L_borehole = %f m.\n', L_borehole);
 fprintf(1, 'init_slice_model: borehole_offset = %f m.\n', borehole_offset);
 fprintf(1, 'init_slice_model: r_buffer = %f m.\n', r_buffer);
@@ -135,6 +155,23 @@ geometry = component.geom.create('geometry', 3);
 mesh = component.mesh.create('mesh');
 
 fprintf(1, 'Done.\n');
+
+%%%
+%slice = Slice(0, slice_width, slice_width, borehole_tilts, L_borehole, borehole_offset, r_buffer, d_borehole/2, d_outer/2, d_inner/2);
+%slice.createGeometry(geometry);
+%slice.createSelections(geometry);
+boreholes = {
+    Borehole([0 0 0], -90, 0, 0, 100, 0.5, 0.1, 0.08, 0.05)
+    %Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
+    %Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
+    %Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
+};
+for i = 1:length(boreholes)
+    boreholes{i}.createGeometry(geometry);
+    boreholes{i}.createSelections(geometry);
+end
+return
+%%%
 
 % =========================================================================
 % Sets up the parameters.
@@ -336,15 +373,15 @@ boreholes = cell(num_slices_in_model, length(borehole_tilts));
 for i = 1:length(borehole_tilts)
     if borehole_tilts(i) == -90
         if has_even_num_slices
-            boreholes{1, i} = Borehole(i, 0.5, 1);
+            boreholes{1, i} = BoreholeHeatExchanger(i, 0.5, 1);
         else
-            boreholes{1, i} = Borehole(i, 0, 2);
+            boreholes{1, i} = BoreholeHeatExchanger(i, 0, 2); %%%%%%%%%%%%%
         end
     else
         if has_even_num_slices
-            boreholes{1, i} = Borehole(i, 0.5, 0);
+            boreholes{1, i} = BoreholeHeatExchanger(i, 0.5, 0);
         else
-            boreholes{1, i} = Borehole(i, 0, 1);
+            boreholes{1, i} = BoreholeHeatExchanger(i, 0, 1); %%%%%%%%%%%%%
         end
     end
 end
@@ -357,15 +394,15 @@ for j = 2:num_slices_in_model
     for i = 1:length(borehole_tilts)
         if borehole_tilts(i) == -90
             if has_even_num_slices
-                boreholes{j, i} = Borehole(i, j-0.5, 1);
+                boreholes{j, i} = BoreholeHeatExchanger(i, j-0.5, 1);
             else
-                boreholes{j, i} = Borehole(i, j-1, 1);
+                boreholes{j, i} = BoreholeHeatExchanger(i, j-1, 1); %%%%%%%
             end
         else
             if has_even_num_slices
-                boreholes{j, i} = Borehole(i, j-0.5, 0);
+                boreholes{j, i} = BoreholeHeatExchanger(i, j-0.5, 0);
             else
-                boreholes{j, i} = Borehole(i, j-1, 0);
+                boreholes{j, i} = BoreholeHeatExchanger(i, j-1, 0); %%%%%%%
             end
         end
     end

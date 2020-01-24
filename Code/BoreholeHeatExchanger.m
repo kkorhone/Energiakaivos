@@ -129,7 +129,7 @@ classdef BoreholeHeatExchanger
             % borehole.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('buffer_zone_selection');
+            counter = BoreholeHeatExchanger.getCount('buffer_zone_selection');
             
             selection = geometry.create(sprintf('buffer_zone_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Buffer Zone Selection %d', counter));
@@ -146,7 +146,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the outer fluid domain.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('outer_fluid_selection');
+            counter = BoreholeHeatExchanger.getCount('outer_fluid_selection');
             
             selection = geometry.create(sprintf('outer_fluid_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Outer Fluid Selection %d', counter));
@@ -163,7 +163,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the pipe wall domain.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('pipe_wall_selection');
+            counter = BoreholeHeatExchanger.getCount('pipe_wall_selection');
             
             selection = geometry.create(sprintf('pipe_wall_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Pipe Wall Selection %d', counter));
@@ -182,7 +182,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the inner fluid domain.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('inner_fluid_selection');
+            counter = BoreholeHeatExchanger.getCount('inner_fluid_selection');
             
             selection = geometry.create(sprintf('inner_fluid_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Inner Fluid Selection %d', counter));
@@ -199,7 +199,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the borehole wall.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('borehole_wall_selection');
+            counter = BoreholeHeatExchanger.getCount('borehole_wall_selection');
             
             selection = geometry.create(sprintf('borehole_wall_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Borehole Wall Selection %d', counter));
@@ -217,7 +217,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the upper helper cylinder.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('upper_helper_cylinder_selection');
+            counter = BoreholeHeatExchanger.getCount('upper_helper_cylinder_selection');
             
             selection = geometry.create(sprintf('upper_helper_cylinder_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Upper Helper Cylinder Selection %d', counter));
@@ -234,7 +234,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the lower helper cylinder.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('lower_helper_cylinder_selection');
+            counter = BoreholeHeatExchanger.getCount('lower_helper_cylinder_selection');
             
             selection = geometry.create(sprintf('lower_helper_cylinder_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Lower Helper Cylinder Selection %d', counter));
@@ -252,7 +252,7 @@ classdef BoreholeHeatExchanger
             % buffer zone.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('outer_cap_helper_selection');
+            counter = BoreholeHeatExchanger.getCount('outer_cap_helper_selection');
             
             selection = geometry.create(sprintf('outer_cap_helper_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Outer Cap Helper Selection %d', counter));
@@ -271,7 +271,7 @@ classdef BoreholeHeatExchanger
             % borehole structure.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('inner_cap_helper_selection');
+            counter = BoreholeHeatExchanger.getCount('inner_cap_helper_selection');
             
             selection = geometry.create(sprintf('inner_cap_helper_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Inner Cap Helper Selection %d', counter));
@@ -289,7 +289,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the top inlet.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('top_inlet_selection');
+            counter = BoreholeHeatExchanger.getCount('top_inlet_selection');
             
             selection = geometry.create(sprintf('top_inlet_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Top Inlet Selection %d', counter));
@@ -307,7 +307,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the top outlet.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('top_outlet_selection');
+            counter = BoreholeHeatExchanger.getCount('top_outlet_selection');
             
             selection = geometry.create(sprintf('top_outlet_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Top Outlet Selection %d', counter));
@@ -325,7 +325,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the bottom outlet.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('bottom_outlet_selection');
+            counter = BoreholeHeatExchanger.getCount('bottom_outlet_selection');
             
             selection = geometry.create(sprintf('bottom_outlet_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Bottom Outlet Selection %d', counter));
@@ -345,7 +345,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing the bottom inlet.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('bottom_inlet_selection');
+            counter = BoreholeHeatExchanger.getCount('bottom_inlet_selection');
             
             selection = geometry.create(sprintf('bottom_inlet_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Bottom Inlet Selection %d', counter));
@@ -365,7 +365,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing an edge in the inner fluid.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('inner_fluid_edge_selection');
+            counter = BoreholeHeatExchanger.getCount('inner_fluid_edge_selection');
             
             selection = geometry.create(sprintf('inner_fluid_edge_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Inner Fluid Edge Selection %d', counter));
@@ -382,7 +382,7 @@ classdef BoreholeHeatExchanger
             % Creates a selection containing an edge in the outer fluid.
             % -------------------------------------------------------------
             
-            counter = Borehole.getCount('outer_fluid_edge_selection');
+            counter = BoreholeHeatExchanger.getCount('outer_fluid_edge_selection');
             
             selection = geometry.create(sprintf('outer_fluid_edge_selection%d', counter), 'CylinderSelection');
             selection.label(sprintf('Outer Fluid Edge Selection %d', counter));
