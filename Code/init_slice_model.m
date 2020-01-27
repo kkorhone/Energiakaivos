@@ -158,7 +158,29 @@ fprintf(1, 'Done.\n');
 
 %%%
 
-%slice = Slice(0, slice_width, slice_width, borehole_tilts, L_borehole, borehole_offset, r_buffer, d_borehole/2, d_outer/2, d_inner/2);
+boreholes = {};
+slice_width=50;
+for i = 1:length(borehole_tilts)
+    if borehole_tilts(i) == -90
+        boreholes{end+1} = Borehole([0 0 0], borehole_tilts(i), 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 35e-3/2, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+    else
+        boreholes{end+1} = Borehole([0 0 0], borehole_tilts(i), 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 35e-3/2, {MirrorPlane.Negative_XZ_Plane});
+    end
+end
+
+for j = 2:3
+    y = (j - 1) * slice_width;
+    for i = 1:length(borehole_tilts)
+        if borehole_tilts(i) == -90
+            boreholes{end+1} = Borehole([0 y 0], borehole_tilts(i), 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 35e-3/2, {MirrorPlane.Negative_YZ_Plane});
+        else
+            boreholes{end+1} = Borehole([0 y 0], borehole_tilts(i), 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 35e-3/2);
+        end
+    end
+end
+
+boreholes = { Borehole([0 0 0], -90, 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 35e-3/2, {MirrorPlane.Negative_YZ_Plane}) };
+
 %slice.createGeometry(geometry);
 %slice.createSelections(geometry);
 
@@ -166,17 +188,21 @@ fprintf(1, 'Done.\n');
 %     Borehole([0 0 0], -90, 0, 0, 100, 0.5, 0.1, 0.08, 0.05)
 %     Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
 %     Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
-%     Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
+%     Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05, {MirrorPlane(180+45), MirrorPlane.Negative_XZ_Plane});
 % };
 
-boreholes = {};
+% Rz = [[cos(alpha) -sin(alpha)]; [sin(alpha) cos(alpha)]];
 
-for tilt = -90:10:0
-    boreholes{end+1} = Borehole([0 0 0], tilt, 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 32e-3/2);
-end
+% boreholes = {};
+% for tilt = -90:10:0
+%     if tilt == -90
+%         boreholes{end+1} = Borehole([0 0 0], tilt, 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 32e-3/2, [SymmetryPlane.Negative_XZ_Plane, SymmetryPlane.Negative_YZ_Plane]);
+%     else
+%         boreholes{end+1} = Borehole([0 0 0], tilt, 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 32e-3/2, SymmetryPlane.Negative_XZ_Plane);
+%     end
+% end
 
 for i = 1:length(boreholes)
-    boreholes{i}
     boreholes{i}.createGeometry(geometry);
     boreholes{i}.createSelections(geometry);
     boreholes{i}.createMesh(mesh);
