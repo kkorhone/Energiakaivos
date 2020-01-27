@@ -220,6 +220,13 @@ classdef Borehole
             inner_fluid_selection.set('axis', Borehole.vectorToCell(obj.borehole_axis));
             inner_fluid_selection.set('condition', 'allvertices');
             
+            % Creates a selection containing the parts of the borehole structure.
+            
+            borehole_structure_selection_tag = sprintf('borehole_structure_selection%d', obj.borehole_id);
+            
+            borehole_structure_selection = geometry.create(borehole_structure_selection_tag, 'UnionSelection');
+            borehole_structure_selection.set('input', {sprintf('buffer_zone_selection%d', obj.borehole_id) sprintf('outer_fluid_selection%d', obj.borehole_id) sprintf('pipe_wall_selection%d', obj.borehole_id) sprintf('inner_fluid_selection%d', obj.borehole_id)});
+            
             % Creates a selection containing the borehole wall boundary.
             
             borehole_wall_selection_tag = sprintf('borehole_wall_selection%d', obj.borehole_id);
@@ -266,6 +273,13 @@ classdef Borehole
             lower_cylinder_selection.set('axis', Borehole.vectorToCell(obj.borehole_axis));
             lower_cylinder_selection.set('condition', 'allvertices');
             
+            % Creates a selection containing the upper and lower cylinders.
+            
+            cylinders_selection_tag = sprintf('cylinders_selection%d', obj.borehole_id);
+            
+            cylinders_selection = geometry.create(cylinders_selection_tag, 'UnionSelection');
+            cylinders_selection.set('input', {sprintf('upper_cylinder_selection%d', obj.borehole_id) sprintf('lower_cylinder_selection%d', obj.borehole_id)});
+
             % Creates a selection containing the outer cap boundary.
             
             outer_cap_selection_tag = sprintf('outer_cap_selection%d', obj.borehole_id);
@@ -365,51 +379,53 @@ classdef Borehole
             
             fprintf(1, 'Done.\n');
 
-            return
-            
-            % -------------------------------------------------------------
             % Creates a selection containing an edge in the inner fluid.
-            % -------------------------------------------------------------
             
-            counter = BoreholeHeatExchanger.getCount('inner_fluid_edge_selection');
-            
-            selection = geometry.create(sprintf('inner_fluid_edge_selection%d', counter), 'CylinderSelection');
-            selection.label(sprintf('Inner Fluid Edge Selection %d', counter));
-            
-            selection.set('entitydim', 1);
-            selection.set('r', +0.001);
-            selection.set('top', obj.borehole_length+0.001);
-            selection.set('bottom', -0.001);
-            selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_inner', obj.borehole_index, obj.borehole_index) sprintf('%f*slice_width', obj.borehole_distance) sprintf('nz%d*borehole_offset+nx%d*r_inner', obj.borehole_index, obj.borehole_index)});
-            selection.set('axis', {sprintf('nx%d', obj.borehole_index) '0' sprintf('nz%d', obj.borehole_index)});
-            selection.set('condition', 'allvertices');
+%             edge_starting_point = obj.borehole_location + obj.borehole_offset * obj.borehole_axis + 
+%             
+%             inner_fluid_edge_selection_tag = sprintf('inner_fluid_edge_selection%d', obj.borehole_id);
+%             
+%             inner_fluid_edge_selection = geometry.create(inner_fluid_edge_selection_tag, 'CylinderSelection');
+%             inner_fluid_edge_selection.label(sprintf('Bottom Inlet Selection %d', obj.borehole_id));
+%             
+%             inner_fluid_edge_selection.set('entitydim', 1);
+%             inner_fluid_edge_selection.set('r', +0.001);
+%             inner_fluid_edge_selection.set('top', obj.borehole_length+0.001);
+%             inner_fluid_edge_selection.set('bottom', -0.001);
+%             selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_inner', obj.borehole_index, obj.borehole_index) sprintf('%f*slice_width', obj.borehole_distance) sprintf('nz%d*borehole_offset+nx%d*r_inner', obj.borehole_index, obj.borehole_index)});
+%             bottom_inlet_selection.set('axis', Borehole.vectorToCell(obj.borehole_axis));
+%             inner_fluid_edge_selection.set('condition', 'allvertices');
             
             % -------------------------------------------------------------
             % Creates a selection containing an edge in the outer fluid.
             % -------------------------------------------------------------
             
-            counter = BoreholeHeatExchanger.getCount('outer_fluid_edge_selection');
-            
-            selection = geometry.create(sprintf('outer_fluid_edge_selection%d', counter), 'CylinderSelection');
-            selection.label(sprintf('Outer Fluid Edge Selection %d', counter));
-            
-            selection.set('entitydim', 1);
-            selection.set('r', +0.001);
-            selection.set('top', obj.borehole_length+0.001);
-            selection.set('bottom', -0.001);
-            selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_outer', obj.borehole_index, obj.borehole_index) sprintf('%f*slice_width', obj.borehole_distance) sprintf('nz%d*borehole_offset+nx%d*r_outer', obj.borehole_index, obj.borehole_index)});
-            selection.set('axis', {sprintf('nx%d', obj.borehole_index) '0' sprintf('nz%d', obj.borehole_index)});
-            selection.set('condition', 'allvertices');
+%             counter = BoreholeHeatExchanger.getCount('outer_fluid_edge_selection');
+%             
+%             selection = geometry.create(sprintf('outer_fluid_edge_selection%d', counter), 'CylinderSelection');
+%             selection.label(sprintf('Outer Fluid Edge Selection %d', counter));
+%             
+%             selection.set('entitydim', 1);
+%             selection.set('r', +0.001);
+%             selection.set('top', obj.borehole_length+0.001);
+%             selection.set('bottom', -0.001);
+%             selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_outer', obj.borehole_index, obj.borehole_index) sprintf('%f*slice_width', obj.borehole_distance) sprintf('nz%d*borehole_offset+nx%d*r_outer', obj.borehole_index, obj.borehole_index)});
+%             selection.set('axis', {sprintf('nx%d', obj.borehole_index) '0' sprintf('nz%d', obj.borehole_index)});
+%             selection.set('condition', 'allvertices');
             
         end
         
         function createMesh(obj, mesh)
             
             fprintf(1, 'Borehole.createMesh: Creating mesh for borehole %d... ', obj.borehole_id);
+            
+            % Creates a mesh for the inner cap of the borehole structure.
 
             inner_cap_mesh_tag = sprintf('inner_cap_mesh%d', obj.borehole_id);
+            
             inner_cap_mesh = mesh.create(inner_cap_mesh_tag, 'FreeTri');
             inner_cap_mesh.label(sprintf('Inner Cap Mesh %d', obj.borehole_id));
+            
             inner_cap_mesh.selection.named(sprintf('geometry_inner_cap_selection%d', obj.borehole_id));
             
             size = inner_cap_mesh.create('size', 'Size');
@@ -418,9 +434,13 @@ classdef Borehole
             size.set('hmax', 0.015);
             size.set('hmaxactive', true);
             
+            % Creates a mesh for the outer cap of the borehole structure.
+            
             outer_cap_mesh_tag = sprintf('outer_cap_mesh%d', obj.borehole_id);
+            
             outer_cap_mesh = mesh.create(outer_cap_mesh_tag, 'FreeTri');
             outer_cap_mesh.label(sprintf('Outer Cap Mesh %d', obj.borehole_id));
+            
             outer_cap_mesh.selection.named(sprintf('geometry_outer_cap_selection%d', obj.borehole_id));
             
             size = outer_cap_mesh.create('size', 'Size');
@@ -430,6 +450,35 @@ classdef Borehole
             size.set('hgradactive', true);
             size.set('hmax', 0.1);
             size.set('hmaxactive', true);
+            
+            % Creates a swept mesh for the borehole structure.
+            
+            swept_mesh_tag = sprintf('swept_mesh%d', obj.borehole_id);
+            
+            swept_mesh = mesh.create(swept_mesh_tag, 'Sweep');
+            swept_mesh.label(sprintf('Swept Mesh %d', obj.borehole_id));
+            
+            swept_mesh.selection.geom('geometry', 3);
+            swept_mesh.selection.named(sprintf('geometry_borehole_structure_selection%d', obj.borehole_id));
+
+            distribution = swept_mesh.create('distribution', 'Distribution');
+            distribution.set('type', 'predefined');
+            distribution.set('elemcount', 300);
+            distribution.set('elemratio', 10);
+            distribution.set('symmetric', true);
+            
+            % Creates meshes for the upper and lower cylinders.
+            
+            upper_cylinder_mesh_tag = sprintf('cylinders_mesh%d', obj.borehole_id);
+            
+            upper_cylinder_mesh = mesh.create(upper_cylinder_mesh_tag, 'FreeTet');
+            upper_cylinder_mesh.label(sprintf('Cylinders Mesh %d', obj.borehole_id));
+            
+            upper_cylinder_mesh.selection.geom('geometry', 3);
+            upper_cylinder_mesh.selection.named(sprintf('geometry_cylinders_selection%d', obj.borehole_id));
+
+            size = upper_cylinder_mesh.create('size', 'Size');
+            size.set('hauto', 3);
             
             fprintf(1, 'Done.\n');
             

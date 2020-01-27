@@ -157,21 +157,33 @@ mesh = component.mesh.create('mesh');
 fprintf(1, 'Done.\n');
 
 %%%
+
 %slice = Slice(0, slice_width, slice_width, borehole_tilts, L_borehole, borehole_offset, r_buffer, d_borehole/2, d_outer/2, d_inner/2);
 %slice.createGeometry(geometry);
 %slice.createSelections(geometry);
-boreholes = {
-    Borehole([0 0 0], -90, 0, 0, 100, 0.5, 0.1, 0.08, 0.05)
-    Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
-    Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
-    Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
-};
+
+% boreholes = {
+%     Borehole([0 0 0], -90, 0, 0, 100, 0.5, 0.1, 0.08, 0.05)
+%     Borehole([50 50 0], -45, 45, 0, 100, 0.5, 0.1, 0.08, 0.05),
+%     Borehole([-50 50 0], -45, 135, 0, 100, 0.5, 0.1, 0.08, 0.05),
+%     Borehole([-50 -50 -50], -45, 225, 0, 100, 0.5, 0.1, 0.08, 0.05)
+% };
+
+boreholes = {};
+
+for tilt = -90:10:0
+    boreholes{end+1} = Borehole([0 0 0], tilt, 0, 20, 300, 0.5, 76e-3/2, 50e-3/2, 32e-3/2);
+end
+
 for i = 1:length(boreholes)
+    boreholes{i}
     boreholes{i}.createGeometry(geometry);
     boreholes{i}.createSelections(geometry);
     boreholes{i}.createMesh(mesh);
 end
+
 return
+
 %%%
 
 % =========================================================================
@@ -525,85 +537,6 @@ fprintf(1, 'Done.\n');
 % =========================================================================
 
 fprintf(1, 'init_slice_model: Creating mesh... ');
-
-% -------------------------------------------------------------------------
-% Crates inner triangle mesh for sweeping
-% -------------------------------------------------------------------------
-
-for j = 1:number_of_slices_in_model
-
-    for i = 1:length(borehole_tilt)
-
-        triangular_mesh = mesh.create(sprintf('inner_cap_mesh%d_slice%d', i, j), 'FreeTri');
-        triangular_mesh.label(sprintf('Borehole #%d Inner Cap Mesh in Slice %d', i, j));
-        triangular_mesh.selection.named(sprintf('geometry_inner_cap_selection%d_slice%d', i, j));
-
-        size = triangular_mesh.create('size', 'Size');
-        size.set('hauto', 1);
-        size.set('custom', true);
-        size.set('hmaxactive', true);
-        if borehole_tilt(i) == -90
-            size.set('hmax', '2[mm]');
-        else
-            size.set('hmax', '5[mm]');
-        end
-
-    end
-
-end
-
-% -------------------------------------------------------------------------
-% Crates outer triangle mesh for sweeping
-% -------------------------------------------------------------------------
-
-for j = 1:number_of_slices_in_model
-
-    for i = 1:length(borehole_tilt)
-    
-        triangular_mesh = model.component('component').mesh('mesh').create(sprintf('outer_cap_mesh%d_slice%d', i, j), 'FreeTri');
-        triangular_mesh.label(sprintf('Borehole #%d Outer Cap Mesh in Slice %d', i, j));
-        triangular_mesh.selection.named(sprintf('geometry_outer_cap_selection%d_slice%d', i, j));
-
-        size = triangular_mesh.create('size', 'Size');
-        size.set('hauto', 1);
-        size.set('custom', 'on');
-        if borehole_tilt(i) == -90
-            size.set('hmax', '20[mm]');
-            size.set('hmaxactive', true);
-        end
-        size.set('hgrad', 1.2);
-        size.set('hgradactive', true);
-
-    end
-    
-end
-
-% -------------------------------------------------------------------------
-% Crates swept mesh
-% -------------------------------------------------------------------------
-
-swept_mesh = mesh.create('swept_mesh', 'Sweep');
-swept_mesh.label(sprintf('Borehole #%d Swept Mesh', i));
-swept_mesh.selection.geom('geometry', 3);
-swept_mesh.selection.named('geometry_borehole_domains_selection');
-
-distribution = swept_mesh.create('distribution', 'Distribution');
-distribution.set('type', 'predefined');
-distribution.set('elemcount', 300);
-distribution.set('elemratio', 100);
-distribution.set('symmetric', true);
-
-% -------------------------------------------------------------------------
-% Crates tetrahedral cap cylinder mesh
-% -------------------------------------------------------------------------
-
-tetrahedral_mesh = mesh.create('cap_cylinders_mesh', 'FreeTet');
-tetrahedral_mesh.label('Cap Cylinder Meshes');
-tetrahedral_mesh.selection.geom('geometry', 3);
-tetrahedral_mesh.selection.named('geometry_cap_cylinders_selection');
-
-size = tetrahedral_mesh.create('size', 'Size');
-size.set('hauto', 3);
 
 % -------------------------------------------------------------------------
 % Crates tetrahedral bedrock mesh
