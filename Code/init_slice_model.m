@@ -157,172 +157,13 @@ mesh = component.mesh.create('mesh');
 fprintf(1, 'Done.\n');
 
 % =========================================================================
-% Creates the CBHEs.
-% =========================================================================
 
-heatCarrierFluid = HeatCarrierFluid(0, 10, 0.6/1000);
-coaxialPipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
-
-cbheArray = { CoaxialBoreholeHeatExchanger([0 0 0], -45, 45, 76e-3, 300, 20, 0.5, heatCarrierFluid, coaxialPipe); };
-
-% make_tensor_model(cbheArray{1});
-
-% =========================================================================
-% Sets up the parameters.
-% =========================================================================
-
-% fprintf(1, 'init_slice_model: Setting up parameters... ');
-
-% -------------------------------------------------------------------------
-% Sets up the model parameters.
-% -------------------------------------------------------------------------
-
-% parameters = model.param('default');
-% parameters.label('General Parameters');
-% parameters.set('slice_width', sprintf('%.6f[m]', slice_width));
-% parameters.set('num_slices', sprintf('%d', num_slices));
-% parameters.set('tunnel_depth', '1450[m]');
-% parameters.set('q_geothermal', '40[mW/m^2]');
-% parameters.set('T_surface', '2.3[degC]');
-% parameters.set('k_large', '1000[W/(m*K)]');
-% parameters.set('buffer_width', sprintf('%f[m]', buffer_width));
-% parameters.set('r_buffer', sprintf('%f[m]', r_buffer));
-% parameters.set('borehole_offset', sprintf('%f[m]', borehole_offset));
-% 
-% if length(T_inlet) == 1
-%     parameters.set('T_inlet', sprintf('%f[degC]', T_inlet));
-% end
-
-% -------------------------------------------------------------------------
-% Sets up the borehole parameters.
-% -------------------------------------------------------------------------
-
-% parameters = model.param.group.create('borehole_parameters');
-% parameters.label('Borehole Parameters');
-% parameters.set('L_borehole', sprintf('%f[m]', L_borehole));
-% parameters.set('d_borehole', sprintf('%f[mm]', d_borehole));
-% parameters.set('r_borehole', 'd_borehole/2');
-
-% -------------------------------------------------------------------------
-% Sets up the bedrock parameters.
-% -------------------------------------------------------------------------
-
-% parameters = model.param.group.create('bedrock_parameters');
-% parameters.label('Bedrock parameters');
-% parameters.set('k_rock', '3[W/(m*K)]');
-% parameters.set('Cp_rock', '750[J/(kg*K)]');
-% parameters.set('rho_rock', '2700[kg/m^3]');
-
-% -------------------------------------------------------------------------
-% Sets up the pipe parameters.
-% -------------------------------------------------------------------------
-
-% parameters = model.param.group.create('pipe_parameters');
-% parameters.label('Pipe Parameters');
-% parameters.set('d_outer', '50[mm]');
-% parameters.set('d_inner', '32[mm]');
-% parameters.set('r_outer', 'd_outer/2');
-% parameters.set('r_inner', 'd_inner/2');
-% parameters.set('A_outer', 'pi*r_borehole^2-pi*r_outer^2');
-% parameters.set('A_inner', 'pi*r_inner^2');
-% parameters.set('A_hdpe', '0.0006056[m^2]');
-% parameters.set('A_air', '0.00082697[m^2]');
-% parameters.set('rho_hdpe', '960[kg/m^3]');
-% parameters.set('Cp_hdpe', '1900[J/(kg*K)]');
-% parameters.set('rho_air', '1.2[kg/m^3]');
-% parameters.set('Cp_air', '1005[J/(kg*K)]');
-% parameters.set('k_pipe', '0.1[W/(m*K)]');
-% parameters.set('Cp_pipe', '(A_hdpe*rho_hdpe*Cp_hdpe+A_air*rho_air*Cp_air)/(A_hdpe*rho_hdpe+A_air*rho_air)');
-% parameters.set('rho_pipe', '(A_hdpe*rho_hdpe+A_air*rho_air)/(A_hdpe+A_air)');
-
-% -------------------------------------------------------------------------
-% Sets up the fluid parameters.
-% -------------------------------------------------------------------------
-
-% parameters = model.param.group.create('fluid_parameters');
-% parameters.label('Fluid Parameters');
-% parameters.set('k_fluid', '0.60[W/(m*K)]');
-% parameters.set('Cp_fluid', '4186[J/(kg*K)]');
-% parameters.set('rho_fluid', '1000[kg/m^3]');
-% parameters.set('Q_fluid', '0.6[L/s]');
-% parameters.set('v_outer', 'Q_fluid/A_outer');
-% parameters.set('v_inner', 'Q_fluid/A_inner');
-
-% -------------------------------------------------------------------------
-% Sets up the vector parameters.
-% -------------------------------------------------------------------------
-% 
-% parameters = model.param.group.create('vector_parameters');
-% parameters.label('Vector Parameters');
-% 
-% for i = 1:length(borehole_tilts)
-%     parameters.set(sprintf('theta%d',i), sprintf('%.6f[deg]', borehole_tilts(i)));
-% end
-% 
-% for i = 1:length(borehole_tilts)
-%     parameters.set(sprintf('nx%d',i), sprintf('cos(theta%d)', i));
-%     parameters.set(sprintf('nz%d',i), sprintf('sin(theta%d)', i));
-% end
-
-% -------------------------------------------------------------------------
-% Sets up the tensor parameters.
-% -------------------------------------------------------------------------
-% 
-% parameters = model.param.group.create('tensor_parameters');
-% parameters.label('Tensor Parameters');
-% 
-% for i = 1:length(borehole_tilts)
-%     parameters.set(sprintf('alpha%d', i), sprintf('-theta%d-90[deg]', i));
-% end
-% 
-% for i = 1:length(borehole_tilts)
-%     parameters.set(sprintf('kxx_%d', i), sprintf('k_fluid*sin(alpha%d)^2+k_large*cos(alpha%d)^2', i, i));
-%     parameters.set(sprintf('kxy_%d', i), '0');
-%     parameters.set(sprintf('kxz_%d', i), sprintf('(k_fluid-k_large)*sin(2*alpha%d)/2', i));
-%     parameters.set(sprintf('kyx_%d', i), '0');
-%     parameters.set(sprintf('kyy_%d', i), 'k_large');
-%     parameters.set(sprintf('kyz_%d', i), '0');
-%     parameters.set(sprintf('kzx_%d', i), sprintf('(k_fluid-k_large)*sin(2*alpha%d)/2', i));
-%     parameters.set(sprintf('kzy_%d', i), '0');
-%     parameters.set(sprintf('kzz_%d', i), sprintf('k_fluid*cos(alpha%d)^2+k_large*sin(alpha%d)^2', i, i));
-% end
-% 
-% fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates functions.
-% =========================================================================
-
-fprintf(1, 'init_slice_model: Creating functions... ');
-
-% -------------------------------------------------------------------------
-% Creates the inlet temperature function.
-% -------------------------------------------------------------------------
-
-if length(T_inlet) == 12
-    
-    pieces = cell(12, 3);
-
-    for i = 1:12
-        pieces{i, 1} = sprintf('%d/12', i-1);
-        pieces{i, 2} = sprintf('%d/12', i);
-        pieces{i, 3} = sprintf('%f', T_inlet(i));
-    end
-    
-    func = model.func.create('inlet_temperature_function', 'Piecewise');
-    func.label('Inlet Temperature Function');
-    func.set('funcname', 'T_inlet');
-    func.set('arg', 't');
-    func.set('extrap', 'periodic');
-    func.set('pieces', pieces);
-    func.set('argunit', 'a');
-    func.set('fununit', 'degC');
-
-end
-
-% -------------------------------------------------------------------------
-% Creates the initial temperature function.
-% -------------------------------------------------------------------------
+model.param.set('q_geothermal', '40[mW/m^2]');
+model.param.set('T_surface', '2.3[degC]');
+model.param.set('T_inlet', '6[degC]');
+model.param.set('k_rock', '3[W/(m*K)]');
+model.param.set('Cp_rock', '750[J/(kg*K)]');
+model.param.set('rho_rock', '2700[kg/m^3]');
 
 func = model.func.create('initial_temperature_function', 'Analytic');
 func.label('Initial Temperature Function');
@@ -332,56 +173,18 @@ func.set('args', {'z'});
 func.set('argunit', 'm');
 func.set('fununit', 'K');
 
-% -------------------------------------------------------------------------
-% Creates a step function for ramping up loads.
-% -------------------------------------------------------------------------
+heatCarrierFluid = HeatCarrierFluid(0, 10, 0.6/1000);
+coaxialPipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
 
-func = model.func.create('step_function', 'Step');
-func.label('Step Function');
-func.set('funcname', 'step');
-func.set('location', '1/24');
-func.set('smooth', '1/12');
+cbheArray = { CoaxialBoreholeHeatExchanger([0 0 0], -45, 45, 76e-3, 300, 20, 0.5, heatCarrierFluid, coaxialPipe); };
 
-fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates the model geometry.
-% =========================================================================
+% make_tensor_model(cbheArray{1});
 
 for i = 1:length(cbheArray)
     cbheArray{i}.createGeometry(geometry);
 end
 
-% -------------------------------------------------------------------------
-% Creates the boreholes in the first slice.
-% -------------------------------------------------------------------------
-
-% -------------------------------------------------------------------------
-% Creates the boreholes in the rest of the slices.
-% -------------------------------------------------------------------------
-
-% -------------------------------------------------------------------------
-% Creates boreholes geometries.
-% -------------------------------------------------------------------------
-
-% -------------------------------------------------------------------------
-% Creates work plane and extrusion for bedrock domain
-% -------------------------------------------------------------------------
-
-% block = geometry.create('bedrock_block', 'Block');
-% block.label('Bedrock Block');
-% block.set('pos', {'0' '0' '-L_borehole-buffer_width'});
-% block.set('size', {'L_borehole+buffer_width' 'num_slices/2*slice_width+buffer_width' 'L_borehole+2*buffer_width'});
-
-% -------------------------------------------------------------------------
-% Generates geometry
-% -------------------------------------------------------------------------
-
 geometry.run('fin');
-
-% =========================================================================
-% Creates selections.
-% =========================================================================
 
 % Creates CBHE selections.
 
@@ -389,176 +192,11 @@ for i = 1:length(cbheArray)
     cbheArray{i}.createSelections(geometry);
 end
 
-% Creates a selection containing the ground surface boundary.
-
-% selection = geometry.create('surface_selection', 'BoxSelection');
-% selection.set('entitydim', 2);
-% selection.set('xmin', '-1[mm]');
-% selection.set('xmax', 'L_borehole+buffer_width+1[mm]');
-% selection.set('ymin', '-1[mm]');
-% selection.set('ymax', 'num_slices/2*slice_width+buffer_width+1[mm]');
-% selection.set('zmin', 'buffer_width-1[mm]');
-% selection.set('zmax', 'buffer_width+1[mm]');
-% selection.set('condition', 'allvertices');
-
-% Creates a selection containing the bottom surface boundary.
-
-% selection = geometry.create('bottom_selection', 'BoxSelection');
-% selection.set('entitydim', 2);
-% selection.set('xmin', '-1[mm]');
-% selection.set('xmax', 'L_borehole+buffer_width+1[mm]');
-% selection.set('ymin', '-1[mm]');
-% selection.set('ymax', 'num_slices/2*slice_width+buffer_width+1[mm]');
-% selection.set('zmin', '-L_borehole-buffer_width-1[mm]');
-% selection.set('zmax', '-L_borehole-buffer_width+1[mm]');
-% selection.set('condition', 'allvertices');
-
-% -------------------------------------------------------------------------
-% Rebuilds geometry
-% -------------------------------------------------------------------------
-
 geometry.run('fin');
-
-fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates mesh
-% =========================================================================
-
-fprintf(1, 'init_slice_model: Creating mesh... ');
 
 for i = 1:length(cbheArray)
     cbheArray{i}.createMesh(mesh);
 end
-
-% -------------------------------------------------------------------------
-% Crates tetrahedral bedrock mesh
-% -------------------------------------------------------------------------
-
-% tetrahedral_mesh = mesh.create('bedrock_mesh', 'FreeTet');
-% tetrahedral_mesh.label('Bedrock Mesh');
-
-% size = tetrahedral_mesh.create('size', 'Size');
-% size.set('hauto', 2);
-
-% hauto 9 = extremenly coarse
-% hauto 8 = extra coarse
-% hauto 7 = coarser
-% hauto 6 = coarse
-% hauto 5 = normal
-% hauto 4 = fine
-% hauto 3 = finer
-% hauto 2 = extra fine
-% hauto 1 = extremenly fine
-
-% mesh.run('cap_cylinders_mesh');
-% mesh.run('bedrock_mesh');
-
-% mesh.run();
-
-fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates operators
-% =========================================================================
-
-% fprintf(1, 'init_slice_model: Creating operators... ');
-
-% -------------------------------------------------------------------------
-% Creates borehole wall integration operators
-% -------------------------------------------------------------------------
-
-% for j = 1:number_of_slices_in_model
-%     for i = 1:length(borehole_tilt)
-%         operator = component.cpl.create(sprintf('wall_intop%d_slice%d', i, j), 'Integration');
-%         operator.label(sprintf('Borehole #%d Wall Integration Operator in Slice %d', i, j));
-%         operator.selection.named(sprintf('geometry_borehole_wall_selection%d_slice%d', i, j));
-%     end
-% end
-
-% -------------------------------------------------------------------------
-% Creates bottom outlet average operators
-% -------------------------------------------------------------------------
-% 
-% for j = 1:number_of_slices_in_model
-%     for i = 1:length(borehole_tilt)
-%         operator = component.cpl.create(sprintf('bottom_outlet_aveop%d_slice%d', i, j), 'Average');
-%         operator.label(sprintf('Borehole #%d Bottom Outlet Average Operator in Slice %d', i, j));
-%         operator.selection.named(sprintf('geometry_bottom_outlet_selection%d_slice%d', i, j));
-%     end
-% end
-
-% -------------------------------------------------------------------------
-% Creates top outlet average operators
-% -------------------------------------------------------------------------
-% 
-% for j = 1:number_of_slices_in_model
-%     for i = 1:length(borehole_tilt)
-%         operator = component.cpl.create(sprintf('top_outlet_aveop%d_slice%d', i, j), 'Average');
-%         operator.label(sprintf('Borehole #%d Top Outlet Average Operator in Slice %d', i, j));
-%         operator.selection.named(sprintf('geometry_top_outlet_selection%d_slice%d', i, j));
-%     end
-% end
-
-fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates component variables
-% =========================================================================
-
-% fprintf(1, 'init_slice_model: Creating component variables... ');
-% 
-% variables = component.variable.create('component_variables');
-% variables.label('Component Variables');
-% 
-% terms = {};
-% 
-% for j = 1:number_of_slices_in_model
-% 
-%     for i = 1:length(borehole_tilt)
-% 
-%         if borehole_tilt(i) == -90
-%             if j == 1 && ~has_even_number_of_slices
-%                 variables.set(sprintf('Q_wall%d_slice%d', i, j), sprintf('4*wall_intop%d_slice%d(physics.ndflux)', i, j));
-%                 terms{end+1} = sprintf('Q_wall%d_slice%d/4', i, j);
-%             else
-%                 variables.set(sprintf('Q_wall%d_slice%d', i, j), sprintf('2*wall_intop%d_slice%d(physics.ndflux)', i, j));
-%                 terms{end+1} = sprintf('Q_wall%d_slice%d/2', i, j);
-%             end
-%         else
-%             variables.set(sprintf('Q_wall%d_slice%d', i, j), sprintf('wall_intop%d_slice%d(physics.ndflux)', i, j));
-%             terms{end+1} = sprintf('Q_wall%d_slice%d', i, j);
-%         end
-%         
-%     end
-%     
-% end
-% 
-% for j = 1:number_of_slices_in_model
-%     for i = 1:length(borehole_tilt)
-%         variables.set(sprintf('T_bottom%d_slice%d', i, j), sprintf('bottom_outlet_aveop%d_slice%d(T)', i, j));
-%     end
-% end
-% 
-% for j = 1:number_of_slices_in_model
-%     for i = 1:length(borehole_tilt)
-%         variables.set(sprintf('T_outlet%d_slice%d', i, j), sprintf('top_outlet_aveop%d_slice%d(T)', i, j));
-%     end
-% end
-% 
-% variables.set('Q_walls', join(terms, '+'));
-% 
-% fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates physics
-% =========================================================================
-
-fprintf(1, 'init_slice_model: Creating physics... ');
-
-% -------------------------------------------------------------------------
-% Crates bedrock physics
-% -------------------------------------------------------------------------
 
 physics = component.physics.create('physics', 'HeatTransfer', geometry.tag);
 physics.prop('ShapeProperty').set('order_temperature', 1);
@@ -580,106 +218,25 @@ physics.feature('solid1').set('rho', 2700);
 physics.feature('solid1').set('Cp_mat', 'userdef');
 physics.feature('solid1').set('Cp', 730);
 
-% physics.create('hf1', 'HeatFluxBoundary', 2);
-% physics.feature('hf1').selection.named('geometry_surface_selection');
-% physics.feature('hf1').set('q0', '-q_geothermal');
-% physics.feature('hf1').label('Ground Surface Heat Flux BC');
-% 
-% physics.create('hf2', 'HeatFluxBoundary', 2);
-% physics.feature('hf2').selection.named('geometry_bottom_selection');
-% physics.feature('hf2').set('q0', '+q_geothermal');
-% physics.feature('hf2').label('Geothermal Heat Flux BC');
-
-% -------------------------------------------------------------------------
-% Crates outer fluid
-% -------------------------------------------------------------------------
-
-for i = 1:numel(cbheArray)
+for i = 1:length(cbheArray)
     cbheArray{i}.createPhysics(physics);
 end
 
+for i = 1:length(cbheArray)
+    cbheArray{i}.createBoundaryConditions(physics, 'T_inlet');
+end
+
+for i = 1:length(cbheArray)
+    cbheArray{i}.createOperators(component, geometry);
+end
+
+variables = component.variable.create('component_variables');
+
+for i = 1:length(cbheArray)
+    cbheArray{i}.createVariables(variables, physics);
+end
+
 return
-for i = 1:length(borehole_tilt)
-    fluid = physics.create(sprintf('outer_fluid%d', i), 'FluidHeatTransferModel', 3);
-    fluid.label(sprintf('Borehole #%d Outer Fluid', i));
-    fluid.selection.named(sprintf('geometry_outer_selection%d', i));
-    % fluid.set('u', {sprintf('+nx%d*v_outer*step(t[1/a])',i) '0' sprintf('+nz%d*v_outer*step(t[1/a])',i)});
-    fluid.set('u', {sprintf('+nx%d*v_outer',i) '0' sprintf('+nz%d*v_outer',i)});
-    fluid.set('k_mat', 'userdef');
-    fluid.set('k', {sprintf('kxx_%d',i); sprintf('kyx_%d',i); sprintf('kzx_%d',i); sprintf('kxy_%d',i); sprintf('kyy_%d',i); sprintf('kzy_%d',i); sprintf('kxz_%d',i); sprintf('kyz_%d',i); sprintf('kzz_%d',i)});
-    fluid.set('rho_mat', 'userdef');
-    fluid.set('rho', 'rho_fluid');
-    fluid.set('Cp_mat', 'userdef');
-    fluid.set('Cp', 'Cp_fluid');
-    fluid.set('gamma_mat', 'userdef');
-    fluid.set('gamma', '1');
-end
-
-% -------------------------------------------------------------------------
-% Crates pipe wall solid
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    solid = physics.create(sprintf('pipe_solid%d',i), 'SolidHeatTransferModel', 3);
-    solid.label(sprintf('Borehole #%d Pipe Solid', i));
-    solid.selection.named(sprintf('geometry_pipe_selection%d', i));
-    solid.set('k_mat', 'userdef');
-    solid.set('k', {'k_pipe' '0' '0' '0' 'k_pipe' '0' '0' '0' 'k_pipe'});
-    solid.set('rho_mat', 'userdef');
-    solid.set('rho', 'rho_pipe');
-    solid.set('Cp_mat', 'userdef');
-    solid.set('Cp', 'Cp_pipe');
-end
-
-% -------------------------------------------------------------------------
-% Crates inner fluid
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    fluid = physics.create(sprintf('inner_fluid%d', i), 'FluidHeatTransferModel', 3);
-    fluid.label(sprintf('Borehole #%d Inner Fluid', i));
-    fluid.selection.named(sprintf('geometry_inner_selection%d', i));
-    % fluid.set('u', {sprintf('-nx%d*v_inner*step(t[1/a])',i) '0' sprintf('-nz%d*v_inner*step(t[1/a])',i)});
-    fluid.set('u', {sprintf('-nx%d*v_inner',i) '0' sprintf('-nz%d*v_inner',i)});
-    fluid.set('k_mat', 'userdef');
-    fluid.set('k', {sprintf('kxx_%d',i); sprintf('kyx_%d',i); sprintf('kzx_%d',i); sprintf('kxy_%d',i); sprintf('kyy_%d',i); sprintf('kzy_%d',i); sprintf('kxz_%d',i); sprintf('kyz_%d',i); sprintf('kzz_%d',i)});
-    fluid.set('rho_mat', 'userdef');
-    fluid.set('rho', 'rho_fluid');
-    fluid.set('Cp_mat', 'userdef');
-    fluid.set('Cp', 'Cp_fluid');
-    fluid.set('gamma_mat', 'userdef');
-    fluid.set('gamma', '1');
-end
-
-% -------------------------------------------------------------------------
-% Crates top inlet boundary conditions
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    temperature_bc = physics.create(sprintf('top_inlet_temperature_bc%d', i), 'TemperatureBoundary', 2);
-    temperature_bc.label(sprintf('Borehole #%d Top Inlet Temperature BC', i));
-    temperature_bc.selection.named(sprintf('geometry_top_inlet_selection%d', i));
-    if length(T_inlet) == 1
-        % temperature_bc.set('T0', '(1-step(t[1/a]))*T_initial(z-tunnel_depth)+step(t[1/a])*T_inlet');
-        temperature_bc.set('T0', 'T_inlet');
-    else
-        % temperature_bc.set('T0', '(1-step(t[1/a]))*T_initial(z-tunnel_depth)+step(t[1/a])*T_inlet(t)');
-        temperature_bc.set('T0', 'T_inlet(t)');
-    end
-end
-
-% -------------------------------------------------------------------------
-% Crates bottom inlet boundary conditions
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    temperature_bc = physics.create(sprintf('bottom_inlet_temperature_bc%d', i), 'TemperatureBoundary', 2);
-    temperature_bc.label(sprintf('Borehole #%d Bottom Inlet Temperature BC', i));
-    temperature_bc.selection.named(sprintf('geometry_bottom_inlet_selection%d', i));
-    temperature_bc.set('T0', sprintf('T_bottom%d', i));
-end
-
-fprintf(1, 'Done.\n');
 
 % =========================================================================
 % Creates events (if inlet temperature is not scalar)
@@ -704,7 +261,7 @@ if length(T_inlet) == 12
     
 end
 
-fprintf(1, 'Done.\n');
+return
 
 % =========================================================================
 % Creates study and solution

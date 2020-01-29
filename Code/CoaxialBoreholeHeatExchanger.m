@@ -376,7 +376,7 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the bottom inlet boundary.
             
-            bottomIntletSelectionTag = sprintf('bottom_intlet_selection%d', obj.id);
+            bottomIntletSelectionTag = sprintf('bottom_inlet_selection%d', obj.id);
             
             bottomIntletSelection = geometry.create(bottomIntletSelectionTag, 'CylinderSelection');
             bottomIntletSelection.label(sprintf('Bottom Inlet Selection %d', obj.id));
@@ -493,6 +493,89 @@ classdef CoaxialBoreholeHeatExchanger
             pipeWallPhysics.set('rho', obj.coaxialPipe.density);
             pipeWallPhysics.set('Cp_mat', 'userdef');
             pipeWallPhysics.set('Cp', obj.coaxialPipe.specificHeatCapacity);
+            
+            % Creates inner fluid physics.
+            
+            innerFluidPhysicsTag = sprintf('inner_fluid_physics%d', obj.id);
+            
+            innerFluidPhysics = physics.create(innerFluidPhysicsTag, 'FluidHeatTransferModel', 3);
+            innerFluidPhysics.label(sprintf('Inner Fluid Physics %d', obj.id));
+            
+            innerFluidPhysics.selection.named(sprintf('geometry_inner_fluid_selection%d', obj.id));
+            innerFluidPhysics.set('u', to_cell_array(obj.innerFluidVelocity));
+            innerFluidPhysics.set('k_mat', 'userdef');
+            innerFluidPhysics.set('k', reshape(to_cell_array(obj.thermalConductivityTensor), 1, []));
+            innerFluidPhysics.set('rho_mat', 'userdef');
+            innerFluidPhysics.set('rho', obj.heatCarrierFluid.density);
+            innerFluidPhysics.set('Cp_mat', 'userdef');
+            innerFluidPhysics.set('Cp', obj.heatCarrierFluid.specificHeatCapacity);
+            innerFluidPhysics.set('gamma_mat', 'userdef');
+            innerFluidPhysics.set('gamma', 1);
+            
+        end
+        
+        function createBoundaryConditions(obj, physics, inlet_temperature)
+            
+            % Creates top inlet temperature boundary condition.
+            
+            topInletTemperatureBCTag = sprintf('top_inlet_temperature_bc%d', obj.id);
+            
+            topInletTemperatureBC = physics.create(topInletTemperatureBCTag, 'TemperatureBoundary', 2);
+            topInletTemperatureBC.label(sprintf('Top Inlet Temperature BC %d', obj.id));
+            
+            topInletTemperatureBC.selection.named(sprintf('geometry_top_inlet_selection%d', obj.id));
+            topInletTemperatureBC.set('T0', inlet_temperature);
+            
+            % Creates bottom inlet temperature boundary condition.
+            
+            bottomInletTemperatureBCTag = sprintf('bottom_inlet_temperature_bc%d', obj.id);
+            
+            bottomInletTemperatureBC = physics.create(bottomInletTemperatureBCTag, 'TemperatureBoundary', 2);
+            bottomInletTemperatureBC.label(sprintf('Bottom Inlet Temperature BC %d', obj.id));
+            
+            bottomInletTemperatureBC.selection.named(sprintf('geometry_bottom_inlet_selection%d', obj.id));
+            bottomInletTemperatureBC.set('T0', sprintf('T_bottom%d', obj.id));
+            
+        end
+        
+        function createOperators(obj, component, geometry)
+            
+            % Creates a wall integration operator.
+            
+            tag = sprintf('borehole_wall_integration_operator%d', obj.id);
+            
+            operator = component.cpl.create(tag, 'Integration');
+            operator.label(sprintf('Borehole Wall Integration Operator %d', obj.id));
+            operator.selection.geom(geometry.tag, 2);
+            operator.selection.named(sprintf('geometry_borehole_wall_selection%d', obj.id));
+            
+            % Creates the top outlet average operator.
+            
+            tag = sprintf('top_outlet_average_operator%d', obj.id);
+            
+            operator = component.cpl.create(tag, 'Average');
+            operator.label(sprintf('Top Average Operator %d', obj.id));
+            operator.selection.geom(geometry.tag, 2);
+            operator.selection.named(sprintf('geometry_top_outlet_selection%d', obj.id));
+            
+            % Creates the bottom outlet average operator.
+            
+            tag = sprintf('bottom_outlet_average_operator%d', obj.id);
+            
+            operator = component.cpl.create(tag, 'Average');
+            operator.label(sprintf('Bottom Average Operator %d', obj.id));
+            operator.selection.geom(geometry.tag, 2);
+            operator.selection.named(sprintf('geometry_bottom_outlet_selection%d', obj.id));
+            
+        end
+        
+        function createVariables(obj, variables, physics)
+            
+            variables.set(sprintf('T_outlet%d', obj.id), sprintf('top_outlet_average_operator%d(T)', obj.id));
+            variables.set(sprintf('T_bottom%d', obj.id), sprintf('bottom_outlet_average_operator%d(T)', obj.id));
+            variables.set(sprintf('A_wall%d', obj.id), sprintf('borehole_wall_integration_operator%d(1)', obj.id));
+            variables.set(sprintf('Q_wall%d', obj.id), sprintf('symmetry_factor%d*borehole_wall_integration_operator%d(%s.ndflux)', obj.id, obj.id, physics.tag));
+            variables.set(sprintf('symmetry_factor%d', obj.id), sprintf('2*pi*%s[m]*%s[m]/A_wall%d', to_cell_array(obj.radius), to_cell_array(obj.length), obj.id));
             
         end
         
