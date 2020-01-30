@@ -173,16 +173,21 @@ func.set('args', {'z'});
 func.set('argunit', 'm');
 func.set('fununit', 'K');
 
-heatCarrierFluid = HeatCarrierFluid(0, 10, 0.6/1000);
-coaxialPipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
+heatCarrierFluid = HeatCarrierFluid(0, 10, 0.6/1000)
+coaxialPipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900)
 
-cbheArray = { CoaxialBoreholeHeatExchanger([0 0 0], -45, 45, 76e-3, 300, 20, 0.5, heatCarrierFluid, coaxialPipe); };
-
+cbheArray = { CoaxialBoreholeHeatExchanger([0 0 0], -90, 0, 76e-3, 300, 20, 0.5, heatCarrierFluid, coaxialPipe); };
+cbheArray{1}
+xxx
 % make_tensor_model(cbheArray{1});
 
 for i = 1:length(cbheArray)
     cbheArray{i}.createGeometry(geometry);
 end
+
+geometry.create('blk1', 'Block');
+geometry.feature('blk1').set('pos', [-150 -150 -500]);
+geometry.feature('blk1').set('size', [300 300 500]);
 
 geometry.run('fin');
 
@@ -205,7 +210,7 @@ physics.identifier('physics');
 physics.name('physics');
 physics.label('Heat Transfer');
 
-physics.feature('init1').set('Tinit', 'T_initial(z-tunnel_depth)');
+physics.feature('init1').set('Tinit', 'T_initial(z)');
 physics.feature('init1').label('Initial Values');
 
 physics.feature('solid1').set('k_mat', 'userdef');
@@ -221,6 +226,14 @@ physics.feature('solid1').set('Cp', 730);
 for i = 1:length(cbheArray)
     cbheArray{i}.createPhysics(physics);
 end
+
+model.component('component').physics('physics').create('temp1', 'TemperatureBoundary', 2);
+model.component('component').physics('physics').feature('temp1').selection.set([4]);
+model.component('component').physics('physics').create('hf1', 'HeatFluxBoundary', 2);
+model.component('component').physics('physics').feature('hf1').selection.set([3]);
+model.component('component').physics('physics').feature('temp1').set('T0', 'T_surface');
+model.component('component').physics('physics').feature('temp1').label('Temperature 1');
+model.component('component').physics('physics').feature('hf1').set('q0', 'q_geothermal');
 
 for i = 1:length(cbheArray)
     cbheArray{i}.createBoundaryConditions(physics, 'T_inlet');

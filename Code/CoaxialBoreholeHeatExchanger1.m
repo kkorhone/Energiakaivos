@@ -21,11 +21,11 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.id = id;
             
-            obj.location = location;
-            obj.tilt = tilt;
-            obj.azimuth = azimuth;
-            obj.diameter = diameter;
-            obj.length = length;
+            obj.location = VectorParameter(sprintf('location%d', id), location, 'm');
+            obj.tilt = ScalarParameter(sprintf('tilt%d', id), tilt, 'deg');
+            obj.azimuth = ScalarParameter(sprintf('azimuth%d', id), azimuth, 'deg');
+            obj.diameter = ScalarParameter(sprintf('diameter%d', id), diameter, 'm');
+            obj.length = ScalarParameter(sprintf('length%d', id), length, 'm');
             obj.offset = offset;
             obj.bufferRadius = bufferRadius;
             obj.heatCarrierFluid = heatCarrierFluid;

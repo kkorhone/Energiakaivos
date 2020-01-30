@@ -13,13 +13,13 @@ classdef CoaxialPipe
             obj.outerWallDiameter = outerWallDiameter;
             obj.innerWallDiameter = innerWallDiameter;
             
-            obj.outerWallRadius= 0.5 * outerWallDiameter;
-            obj.innerWallRadius= 0.5 * innerWallDiameter;
+            obj.outerWallRadius= 0.5*outerWallDiameter;
+            obj.innerWallRadius= 0.5*innerWallDiameter;
             
             obj.thermalConductivity = thermalConductivity;
             obj.specificHeatCapacity = specificHeatCapacity;
             obj.density = density;
-
+            
         end
         
     end
