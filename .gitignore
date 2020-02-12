@@ -2,3 +2,7 @@
 *.mph
 *.asv
 *.lock
+*.txt
+*.recovery
+*.status
+*.png

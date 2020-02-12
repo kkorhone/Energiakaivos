@@ -881,8 +881,8 @@ size.set('hauto', 2);
 % hauto 2 = extra fine
 % hauto 1 = extremenly fine
 
-mesh.run('cap_cylinders_mesh');
-mesh.run('bedrock_mesh');
+%mesh.run('cap_cylinders_mesh');
+%mesh.run('bedrock_mesh');
 
 % mesh.run();
 
