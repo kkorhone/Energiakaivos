@@ -1,11 +1,13 @@
-clc
+function export_data(type)
 
-clear all
-close all
+% clc
+% 
+% clear all
+% close all
 
 % =========================================================================
 
-type = 'uv';
+%type = 'ico';
 tag = 'component_variables';
 
 % =========================================================================

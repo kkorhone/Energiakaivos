@@ -8,7 +8,7 @@ model_height = 600;
 
 d_borehole = 0.076;
 L_borehole = 300;
-borehole_offset = 30;
+borehole_offset = 40;
 r_buffer = 1;
 
 fluid = HeatCarrierFluid(0, 20, 0.6/1000);
@@ -142,8 +142,7 @@ model.param.set('T_surface', '2.3[degC]');
 model.param.set('k_rock', '3[W/(m*K)]');
 model.param.set('Cp_rock', '750[J/(kg*K)]');
 model.param.set('rho_rock', '2700[kg/m^3]');
-model.param.set('T_charge', '30[degC]');
-model.param.set('Q_discharge', '1[MW]');
+model.param.set('T_inlet', '6[degC]');
 
 fprintf(1, 'Done.\n');
 
@@ -343,7 +342,8 @@ end
 % -------------------------------------------------------------------------
 
 for i = 1:length(bhe_array)
-    bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    bhe_array{i}.createBoundaryConditions(geom, phys, 'T_inlet');
 end
 
 % -------------------------------------------------------------------------
@@ -418,7 +418,7 @@ vars.set('Q_total', expr);
 % Creates temperature drop variable.
 % -------------------------------------------------------------------------
 
-vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, length(bhe_array), fluid.flowRate));
+% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, length(bhe_array), fluid.flowRate));
 
 fprintf(1, 'Done.\n');
 
@@ -444,14 +444,14 @@ model.sol('sol1').feature('t1').feature.remove('dDef');
 
 model.study('std1').setGenPlots(false);
 model.study('std1').feature('time').set('tunit', 'a');
-model.study('std1').feature('time').set('tlist', '0 10');
+model.study('std1').feature('time').set('tlist', '0 30');
 model.study('std1').feature('time').set('usertol', true);
 model.study('std1').feature('time').set('rtol', '1e-2');
 
 model.sol('sol1').attach('std1');
-model.sol('sol1').feature('v1').set('clist', {'0 10' '1e-6[a]'});
+model.sol('sol1').feature('v1').set('clist', {'0 30' '1e-6[a]'});
 model.sol('sol1').feature('t1').set('tunit', 'a');
-model.sol('sol1').feature('t1').set('tlist', '0 10');
+model.sol('sol1').feature('t1').set('tlist', '0 30');
 model.sol('sol1').feature('t1').set('rtol', '1e-2');
 model.sol('sol1').feature('t1').set('maxorder', 2);
 model.sol('sol1').feature('t1').set('estrat', 'exclude');
@@ -479,37 +479,37 @@ model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 
 fprintf(1, 'Done.\n');
 
-events = comp.physics.create('events', 'Events', 'geometry');
-events.label('Charging and Discharging Events');
-events.identifier(events.tag);
-
-model.study('std1').feature('time').activate(events.tag, true);
-
-discrete_states = events.create('discrete_states', 'DiscreteStates', -1);
-discrete_states.label('Charging and Discharging States');
-discrete_states.setIndex('dim', 'is_charging', 0, 0);
-discrete_states.setIndex('dimInit', 0, 0, 0);
-discrete_states.setIndex('dim', 'is_discharging', 1, 0);
-discrete_states.setIndex('dimInit', 0, 1, 0);
-discrete_states.setIndex('dimDescr', '', 1, 0);
-discrete_states.setIndex('dimInit', 1, 0, 0);
-
-charging_event = events.create('charging_event', 'ExplicitEvent', -1);
-charging_event.label('Charging Event');
-charging_event.set('start', '0[a]');
-charging_event.set('period', '1[a]');
-charging_event.setIndex('reInitName', 'is_charging', 0, 0);
-charging_event.setIndex('reInitValue', 0, 0, 0);
-charging_event.setIndex('reInitValue', 1, 0, 0);
-charging_event.setIndex('reInitName', 'is_discharging', 1, 0);
-charging_event.setIndex('reInitValue', 0, 1, 0);
-
-discharging_event = events.create('discharging_event', 'ExplicitEvent', -1);
-discharging_event.label('Discharging Event');
-discharging_event.set('start', '0.5[a]');
-discharging_event.set('period', '1[a]');
-discharging_event.setIndex('reInitName', 'is_charging', 0, 0);
-discharging_event.setIndex('reInitValue', 0, 0, 0);
-discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
-discharging_event.setIndex('reInitValue', 0, 1, 0);
-discharging_event.setIndex('reInitValue', 1, 1, 0);
+% events = comp.physics.create('events', 'Events', 'geometry');
+% events.label('Charging and Discharging Events');
+% events.identifier(events.tag);
+% 
+% model.study('std1').feature('time').activate(events.tag, true);
+% 
+% discrete_states = events.create('discrete_states', 'DiscreteStates', -1);
+% discrete_states.label('Charging and Discharging States');
+% discrete_states.setIndex('dim', 'is_charging', 0, 0);
+% discrete_states.setIndex('dimInit', 0, 0, 0);
+% discrete_states.setIndex('dim', 'is_discharging', 1, 0);
+% discrete_states.setIndex('dimInit', 0, 1, 0);
+% discrete_states.setIndex('dimDescr', '', 1, 0);
+% discrete_states.setIndex('dimInit', 1, 0, 0);
+% 
+% charging_event = events.create('charging_event', 'ExplicitEvent', -1);
+% charging_event.label('Charging Event');
+% charging_event.set('start', '0[a]');
+% charging_event.set('period', '1[a]');
+% charging_event.setIndex('reInitName', 'is_charging', 0, 0);
+% charging_event.setIndex('reInitValue', 0, 0, 0);
+% charging_event.setIndex('reInitValue', 1, 0, 0);
+% charging_event.setIndex('reInitName', 'is_discharging', 1, 0);
+% charging_event.setIndex('reInitValue', 0, 1, 0);
+% 
+% discharging_event = events.create('discharging_event', 'ExplicitEvent', -1);
+% discharging_event.label('Discharging Event');
+% discharging_event.set('start', '0.5[a]');
+% discharging_event.set('period', '1[a]');
+% discharging_event.setIndex('reInitName', 'is_charging', 0, 0);
+% discharging_event.setIndex('reInitValue', 0, 0, 0);
+% discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
+% discharging_event.setIndex('reInitValue', 0, 1, 0);
+% discharging_event.setIndex('reInitValue', 1, 1, 0);

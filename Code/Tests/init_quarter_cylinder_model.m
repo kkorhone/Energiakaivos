@@ -1,14 +1,14 @@
-function model = init_full_cylinder_model(file_name)
+function model = init_quarter_cylinder_model(file_name)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
 field_depth = 100;
-model_radius = 600;
-model_height = 600;
+model_radius = 1000;
+model_height = 2000;
 
 d_borehole = 0.076;
 L_borehole = 300;
-borehole_offset = 30;
+borehole_offset = 75;
 r_buffer = 1;
 
 fluid = HeatCarrierFluid(0, 20, 0.6/1000);
@@ -23,6 +23,8 @@ pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
 % -------------------------------------------------------------------------
 
 config = load(file_name);
+
+num_boreholes = size(config, 1);
 
 x = config(:, 1);
 y = config(:, 2);
@@ -65,11 +67,24 @@ phi = atan2(y, x);
 tilt = 90 - 180 * theta / pi;
 azim = 180 * phi / pi;
 
+i = [];
+
+for j = 1:length(tilt)
+    if (abs(azim(j)) < 1e-6) || (abs(azim(j)-90) < 1e-6)
+        i = [i j];
+    elseif 0 <= azim(j) && azim(j) <= 90
+        i = [i j];
+    end
+end
+
+tilt = tilt(i);
+azim = azim(i);
+
 % -------------------------------------------------------------------------
 % Plots the end points of the BHEs.
 % -------------------------------------------------------------------------
 
-for i = 1:length(x)
+for i = 1:length(tilt)
     x = sin(pi/2-tilt(i)*pi/180)*cos(azim(i)*pi/180);
     y = sin(pi/2-tilt(i)*pi/180)*sin(azim(i)*pi/180);
     z = cos(pi/2-tilt(i)*pi/180);
@@ -98,11 +113,30 @@ pause(1)
 % Constructs the BHEs.
 % -------------------------------------------------------------------------
 
-bhe_array = cell(1, length(tilt));
+bhe_factors = [];
+bhe_array = {};
 
 for i = 1:length(tilt)
-    bhe_array{i} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe);
+    if abs(tilt(i) + 90) < 1e-6
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+        fprintf(1, 'Vertical BHE\n');
+        bhe_factors(end+1) = 1;
+    elseif abs(azim(i)) < 1e-6
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Negative_XZ_Plane});
+        fprintf(1, 'X Axis BHE\n');
+        bhe_factors(end+1) = 2;
+    elseif abs(azim(i) - 90) < 1e-6
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Positive_XZ_Plane});
+        fprintf(1, 'Y Axis BHE\n');
+        bhe_factors(end+1) = 2;
+    else
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe);
+        fprintf(1, 'Quadrant BHE\n');
+        bhe_factors(end+1) = 4;
+    end
 end
+
+fprintf(1, 'sum(bhe_factors)=%d length(bhe_array)=%d\n', sum(bhe_factors), length(bhe_array));
 
 % =========================================================================
 % Creates a new model.
@@ -142,8 +176,7 @@ model.param.set('T_surface', '2.3[degC]');
 model.param.set('k_rock', '3[W/(m*K)]');
 model.param.set('Cp_rock', '750[J/(kg*K)]');
 model.param.set('rho_rock', '2700[kg/m^3]');
-model.param.set('T_charge', '30[degC]');
-model.param.set('Q_discharge', '1[MW]');
+model.param.set('T_inlet', '6[degC]');
 
 fprintf(1, 'Done.\n');
 
@@ -185,11 +218,24 @@ end
 % Creates bedrock geometry.
 % -------------------------------------------------------------------------
 
-bedrock_cylinder = geom.create('bedrock_cylinder', 'Cylinder');
-bedrock_cylinder.label('Bedrock Cylinder');
-bedrock_cylinder.set('r', model_radius);
-bedrock_cylinder.set('h', model_height);
-bedrock_cylinder.set('pos', [0 0 -model_height]);
+% bedrock_cylinder = geom.create('bedrock_cylinder', 'Cylinder');
+% bedrock_cylinder.label('Bedrock Cylinder');
+% bedrock_cylinder.set('r', model_radius);
+% bedrock_cylinder.set('h', model_height);
+% bedrock_cylinder.set('pos', [0 0 -model_height]);
+
+bedrock_work_plane = geom.create('bedrock_work_plane', 'WorkPlane');
+bedrock_work_plane.set('unite', true);
+bedrock_work_plane.set('quickz', -model_height);
+
+bedrock_circle = bedrock_work_plane.geom.create('bedrock_circle', 'Circle');
+bedrock_circle.set('r', model_radius);
+bedrock_circle.set('angle', 90);
+
+bedrock_extrude = geom.feature.create('bedrock_extrude', 'Extrude');
+bedrock_extrude.set('workplane', bedrock_work_plane.tag);
+bedrock_extrude.selection('input').set({char(bedrock_work_plane.tag)});
+bedrock_extrude.setIndex('distance', model_height, 0);
 
 % =========================================================================
 % Creates selections.
@@ -253,13 +299,16 @@ end
 % Creates bedrock mesh.
 % -------------------------------------------------------------------------
 
-mesh.create('bedrock_mesh', 'FreeTet');
+bedrock_mesh = mesh.create('bedrock_mesh', 'FreeTet');
+
+bedrock_mesh_size = bedrock_mesh.create('bedrock_mesh_size', 'Size');
+bedrock_mesh_size.set('hauto', 4);
 
 % -------------------------------------------------------------------------
 % Runs the mesh.
 % -------------------------------------------------------------------------
 
-% mesh.run();
+%mesh.run();
 
 fprintf(1, 'Done.\n');
 
@@ -343,7 +392,8 @@ end
 % -------------------------------------------------------------------------
 
 for i = 1:length(bhe_array)
-    bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    bhe_array{i}.createBoundaryConditions(geom, phys, 'T_inlet');
 end
 
 % -------------------------------------------------------------------------
@@ -392,13 +442,13 @@ end
 % Creates borehole field outlet temperature variable.
 % -------------------------------------------------------------------------
 
-expr = sprintf('T_outlet%d', bhe_array{1}.id);
+expr = sprintf('%d*T_outlet%d', bhe_factors(1), bhe_array{1}.id);
 
 for i = 2:length(bhe_array)
-    expr = sprintf('%s+T_outlet%d', expr, bhe_array{i}.id);
+    expr = sprintf('%s+%d*T_outlet%d', expr, bhe_factors(i), bhe_array{i}.id);
 end
 
-expr = sprintf('(%s)/%d', expr, length(bhe_array));
+expr = sprintf('(%s)/%d', expr, num_boreholes);
 
 vars.set('T_outlet', expr);
 
@@ -406,10 +456,10 @@ vars.set('T_outlet', expr);
 % Creates borehole field total heating power variable.
 % -------------------------------------------------------------------------
 
-expr = sprintf('Q_wall%d', bhe_array{1}.id);
+expr = sprintf('%d*Q_wall%d', bhe_factors(1), bhe_array{1}.id);
 
 for i = 2:length(bhe_array)
-    expr = sprintf('%s+Q_wall%d', expr, bhe_array{i}.id);
+    expr = sprintf('%s+%d*Q_wall%d', expr, bhe_factors(i), bhe_array{i}.id);
 end
 
 vars.set('Q_total', expr);
@@ -418,7 +468,7 @@ vars.set('Q_total', expr);
 % Creates temperature drop variable.
 % -------------------------------------------------------------------------
 
-vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, length(bhe_array), fluid.flowRate));
+% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, num_boreholes, fluid.flowRate));
 
 fprintf(1, 'Done.\n');
 
@@ -444,14 +494,14 @@ model.sol('sol1').feature('t1').feature.remove('dDef');
 
 model.study('std1').setGenPlots(false);
 model.study('std1').feature('time').set('tunit', 'a');
-model.study('std1').feature('time').set('tlist', '0 10');
+model.study('std1').feature('time').set('tlist', '0 100');
 model.study('std1').feature('time').set('usertol', true);
 model.study('std1').feature('time').set('rtol', '1e-2');
 
 model.sol('sol1').attach('std1');
-model.sol('sol1').feature('v1').set('clist', {'0 10' '1e-6[a]'});
+model.sol('sol1').feature('v1').set('clist', {'0 100' '1e-6[a]'});
 model.sol('sol1').feature('t1').set('tunit', 'a');
-model.sol('sol1').feature('t1').set('tlist', '0 10');
+model.sol('sol1').feature('t1').set('tlist', '0 100');
 model.sol('sol1').feature('t1').set('rtol', '1e-2');
 model.sol('sol1').feature('t1').set('maxorder', 2);
 model.sol('sol1').feature('t1').set('estrat', 'exclude');
@@ -479,37 +529,37 @@ model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 
 fprintf(1, 'Done.\n');
 
-events = comp.physics.create('events', 'Events', 'geometry');
-events.label('Charging and Discharging Events');
-events.identifier(events.tag);
-
-model.study('std1').feature('time').activate(events.tag, true);
-
-discrete_states = events.create('discrete_states', 'DiscreteStates', -1);
-discrete_states.label('Charging and Discharging States');
-discrete_states.setIndex('dim', 'is_charging', 0, 0);
-discrete_states.setIndex('dimInit', 0, 0, 0);
-discrete_states.setIndex('dim', 'is_discharging', 1, 0);
-discrete_states.setIndex('dimInit', 0, 1, 0);
-discrete_states.setIndex('dimDescr', '', 1, 0);
-discrete_states.setIndex('dimInit', 1, 0, 0);
-
-charging_event = events.create('charging_event', 'ExplicitEvent', -1);
-charging_event.label('Charging Event');
-charging_event.set('start', '0[a]');
-charging_event.set('period', '1[a]');
-charging_event.setIndex('reInitName', 'is_charging', 0, 0);
-charging_event.setIndex('reInitValue', 0, 0, 0);
-charging_event.setIndex('reInitValue', 1, 0, 0);
-charging_event.setIndex('reInitName', 'is_discharging', 1, 0);
-charging_event.setIndex('reInitValue', 0, 1, 0);
-
-discharging_event = events.create('discharging_event', 'ExplicitEvent', -1);
-discharging_event.label('Discharging Event');
-discharging_event.set('start', '0.5[a]');
-discharging_event.set('period', '1[a]');
-discharging_event.setIndex('reInitName', 'is_charging', 0, 0);
-discharging_event.setIndex('reInitValue', 0, 0, 0);
-discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
-discharging_event.setIndex('reInitValue', 0, 1, 0);
-discharging_event.setIndex('reInitValue', 1, 1, 0);
+% events = comp.physics.create('events', 'Events', 'geometry');
+% events.label('Charging and Discharging Events');
+% events.identifier(events.tag);
+% 
+% model.study('std1').feature('time').activate(events.tag, true);
+% 
+% discrete_states = events.create('discrete_states', 'DiscreteStates', -1);
+% discrete_states.label('Charging and Discharging States');
+% discrete_states.setIndex('dim', 'is_charging', 0, 0);
+% discrete_states.setIndex('dimInit', 0, 0, 0);
+% discrete_states.setIndex('dim', 'is_discharging', 1, 0);
+% discrete_states.setIndex('dimInit', 0, 1, 0);
+% discrete_states.setIndex('dimDescr', '', 1, 0);
+% discrete_states.setIndex('dimInit', 1, 0, 0);
+% 
+% charging_event = events.create('charging_event', 'ExplicitEvent', -1);
+% charging_event.label('Charging Event');
+% charging_event.set('start', '0[a]');
+% charging_event.set('period', '1[a]');
+% charging_event.setIndex('reInitName', 'is_charging', 0, 0);
+% charging_event.setIndex('reInitValue', 0, 0, 0);
+% charging_event.setIndex('reInitValue', 1, 0, 0);
+% charging_event.setIndex('reInitName', 'is_discharging', 1, 0);
+% charging_event.setIndex('reInitValue', 0, 1, 0);
+% 
+% discharging_event = events.create('discharging_event', 'ExplicitEvent', -1);
+% discharging_event.label('Discharging Event');
+% discharging_event.set('start', '0.5[a]');
+% discharging_event.set('period', '1[a]');
+% discharging_event.setIndex('reInitName', 'is_charging', 0, 0);
+% discharging_event.setIndex('reInitValue', 0, 0, 0);
+% discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
+% discharging_event.setIndex('reInitValue', 0, 1, 0);
+% discharging_event.setIndex('reInitValue', 1, 1, 0);

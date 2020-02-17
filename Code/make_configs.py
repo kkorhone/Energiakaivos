@@ -5,12 +5,12 @@ from pylab import *
 def make_config(type):
     if type == "ico":
         #points, cells = mz.icosa_sphere(2) # 25 BHEs symm
-        #points, cells = mz.icosa_sphere(3) # 50 BHEs asymm
-        points, cells = mz.icosa_sphere(4) # 89 BHEs symm
+        #points, cells = mz.icosa_sphere(4) # 89 BHEs symm
+        points, cells = mz.icosa_sphere(5) # 89 BHEs symm
     elif type == "uv":
         #points, cells = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
-        #points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=10) # 49 BHEs
-        points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
+        #points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
+        points, cells = mz.uv_sphere(num_points_per_circle=17, num_circles=17) # 85 BHEs
     else:
         raise ValueError("Config type must be 'ico' or 'uv'.")
     i = where(points[:,2] <= 0)[0]
