@@ -1,23 +1,15 @@
-% model = init_quarter_cylinder_model('uv_config.txt');
-% mphsave(model, 'quarter_uv_339_bhes.mph');
-% 
-% model = init_quarter_cylinder_model('ico_config.txt');
-% mphsave(model, 'quarter_ico_337_bhes.mph');
+files = dir('uv_*_bhes.txt');
 
-% model = init_quarter_cylinder_model('uv_config.txt');
-% mphsave(model, 'quarter_uv_145_bhes.mph');
-% 
-% model = init_quarter_cylinder_model('ico_config.txt');
-% mphsave(model, 'quarter_ico_136_bhes.mph');
+for i = 1:length(files)
+    base_name = files(i).name(1:end-4)
+    model = init_quarter_cylinder_model(files(i).name);
+    mphsave(model, sprintf('%s.mph', base_name));
+end
 
-% model = init_quarter_cylinder_model('uv_config.txt');
-% mphsave(model, 'quarter_uv_85_bhes.mph');
-% 
-% model = init_quarter_cylinder_model('ico_config.txt');
-% mphsave(model, 'quarter_ico_89_bhes.mph');
+files = dir('ico_*_bhes.txt');
 
-model = init_quarter_cylinder_model('uv_config.txt');
-mphsave(model, 'quarter_uv_25_bhes.mph');
-
-model = init_quarter_cylinder_model('ico_config.txt');
-mphsave(model, 'quarter_ico_25_bhes.mph');
+for i = 1:length(files)
+    base_name = files(i).name(1:end-4)
+    model = init_quarter_cylinder_model(files(i).name);
+    mphsave(model, sprintf('%s.mph', base_name));
+end

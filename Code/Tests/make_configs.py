@@ -67,18 +67,25 @@ def test_for_symmetry(points):
     else:
         title("Asymmetry (%d points)" % (points.shape[0]-len(bag)))
     
-def make_config(type):
+def make_config(type, level):
     if type == "ico":
-        points, cells = mz.icosa_sphere(2) # 25
-        #points, cells = mz.icosa_sphere(4) # 89
-        #points, cells = mz.icosa_sphere(5) # 136
-        #points, cells = mz.icosa_sphere(8) # 337
+        if level == 1:
+            points, cells = mz.icosa_sphere(2) # 25
+        elif level == 2:
+            points, cells = mz.icosa_sphere(4) # 89
+        elif level == 3:
+            points, cells = mz.icosa_sphere(5) # 136
+        elif level == 4:
+            points, cells = mz.icosa_sphere(8) # 337
     elif type == "uv":
-        points, cells = mz.uv_sphere(num_points_per_circle=13, num_circles=15)
-        #points, cells = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
-        #points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
-        #points, cells = mz.uv_sphere(num_points_per_circle=18, num_circles=17) # 145 BHEs
-        #points, cells = mz.uv_sphere(num_points_per_circle=26, num_circles=27) # 339 BHEs
+        if level == 1:
+            points, cells = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
+        elif level == 2:
+            points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
+        elif level == 3:
+            points, cells = mz.uv_sphere(num_points_per_circle=18, num_circles=17) # 145 BHEs
+        elif level == 4:
+            points, cells = mz.uv_sphere(num_points_per_circle=26, num_circles=27) # 339 BHEs
     else:
         raise ValueError("Config type must be 'ico' or 'uv'.")
     i = where(points[:,2] <= 0)[0]
@@ -123,18 +130,22 @@ def write_field(txt_name, starting_points, ending_points):
         file.write("%.20f %.20f %.20f %.20f %.20f %.20f\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i]))
     file.close()
 
-points = make_config("ico")
-starting_points, ending_points = make_field(points, 50, 300)
-plot_field(starting_points, ending_points)
-test_for_symmetry(points)
-plot_config("ico", points)
-write_field("ico_field.txt", starting_points, ending_points)
+for level in range(1, 5):
 
-points = make_config("uv")
-starting_points, ending_points = make_field(points, 50, 300)
-plot_field(starting_points, ending_points)
-test_for_symmetry(points)
-plot_config("uv", points)
-write_field("uv_field.txt", starting_points, ending_points)
+    points = make_config("ico", level)
+    #starting_points, ending_points = make_field(points, 50, 300)
+    #plot_field(starting_points, ending_points)
+    #test_for_symmetry(points)
+    #plot_config("ico", points)
+    #write_field("ico_field.txt", starting_points, ending_points)
+    savetxt("ico_%d_bhes.txt"%points.shape[0], points)
+
+    points = make_config("uv", level)
+    #starting_points, ending_points = make_field(points, 50, 300)
+    #plot_field(starting_points, ending_points)
+    #test_for_symmetry(points)
+    #plot_config("uv", points)
+    #write_field("uv_field.txt", starting_points, ending_points)
+    savetxt("uv_%d_bhes.txt"%points.shape[0], points)
 
 show()

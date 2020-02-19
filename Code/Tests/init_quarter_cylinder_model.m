@@ -2,9 +2,9 @@ function model = init_quarter_cylinder_model(file_name)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
-field_depth = 100;
+field_depth = 1000;
 model_radius = 1000;
-model_height = 2000;
+model_height = 2500;
 
 d_borehole = 0.076;
 L_borehole = 300;
@@ -172,11 +172,11 @@ fprintf(1, 'Done.\n');
 fprintf(1, 'init_cylinder_model: Setting up parameters... ');
 
 model.param.set('q_geothermal', '40[mW/m^2]');
-model.param.set('T_surface', '2.3[degC]');
+model.param.set('T_surface', '6.5[degC]');
 model.param.set('k_rock', '3[W/(m*K)]');
 model.param.set('Cp_rock', '750[J/(kg*K)]');
 model.param.set('rho_rock', '2700[kg/m^3]');
-model.param.set('T_inlet', '6[degC]');
+model.param.set('T_inlet', '0[degC]');
 
 fprintf(1, 'Done.\n');
 
@@ -308,7 +308,7 @@ bedrock_mesh_size.set('hauto', 4);
 % Runs the mesh.
 % -------------------------------------------------------------------------
 
-%mesh.run();
+mesh.run();
 
 fprintf(1, 'Done.\n');
 
