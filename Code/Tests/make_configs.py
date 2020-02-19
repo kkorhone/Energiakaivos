@@ -74,7 +74,8 @@ def make_config(type):
         #points, cells = mz.icosa_sphere(5) # 136
         #points, cells = mz.icosa_sphere(8) # 337
     elif type == "uv":
-        points, cells = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
+        points, cells = mz.uv_sphere(num_points_per_circle=13, num_circles=15)
+        #points, cells = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
         #points, cells = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
         #points, cells = mz.uv_sphere(num_points_per_circle=18, num_circles=17) # 145 BHEs
         #points, cells = mz.uv_sphere(num_points_per_circle=26, num_circles=27) # 339 BHEs
@@ -92,14 +93,48 @@ def plot_config(type, points):
     ax.view_init(azim=0, elev=90)
     title("%d BHEs (%s)" % (points.shape[0], type))
 
+def make_field(points, offset, length):
+    nx = points[:, 0] / sqrt(points[:,0]**2+points[:,1]**2+points[:,2]**2)
+    ny = points[:, 1] / sqrt(points[:,0]**2+points[:,1]**2+points[:,2]**2)
+    nz = points[:, 2] / sqrt(points[:,0]**2+points[:,1]**2+points[:,2]**2)
+    sx = offset * nx
+    sy = offset * ny
+    sz = offset * nz
+    ex = (offset + length) * nx
+    ey = (offset + length) * ny
+    ez = (offset + length) * nz
+    return vstack((sx, sy, sz)).T, vstack((ex, ey, ez)).T
+
+def plot_field(starting_points, ending_points):
+    sx, sy, sz = starting_points.T
+    ex, ey, ez = ending_points.T
+    fig = figure()
+    ax = Axes3D(fig)
+    for i in range(starting_points.shape[0]):
+        ax.plot([sx[i],ex[i]], [sy[i],ey[i]], [sz[i],ez[i]], "r-")
+        ax.plot([sx[i]], [sy[i]], [sz[i]], "r.")
+        ax.plot([ex[i]], [ey[i]], [ez[i]], "ro")
+
+def write_field(txt_name, starting_points, ending_points):
+    sx, sy, sz = starting_points.T
+    ex, ey, ez = ending_points.T
+    file = open(txt_name, "w")
+    for i in range(starting_points.shape[0]):
+        file.write("%.20f %.20f %.20f %.20f %.20f %.20f\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i]))
+    file.close()
+
 points = make_config("ico")
+starting_points, ending_points = make_field(points, 50, 300)
+plot_field(starting_points, ending_points)
 test_for_symmetry(points)
 plot_config("ico", points)
-savetxt("ico_config.txt", points)
+write_field("ico_field.txt", starting_points, ending_points)
 
 points = make_config("uv")
+starting_points, ending_points = make_field(points, 50, 300)
+plot_field(starting_points, ending_points)
 test_for_symmetry(points)
 plot_config("uv", points)
-savetxt("uv_config.txt", points)
+write_field("uv_field.txt", starting_points, ending_points)
 
 show()
