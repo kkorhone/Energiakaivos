@@ -62,8 +62,8 @@ plot3(0, 0, 0, 'ko')
 theta = acos(z ./ r);
 phi = atan2(y, x);
 
-tilt = 90 - 180 * theta / pi;
-azim = 180 * phi / pi;
+tilt = 90 - 180 * theta / pi
+azim = 180 * phi / pi
 
 % -------------------------------------------------------------------------
 % Plots the end points of the BHEs.
@@ -93,7 +93,7 @@ hold off
 title(sprintf('%d BHEs (%s)', length(tilt), file_name))
 
 pause(1)
-
+return
 % -------------------------------------------------------------------------
 % Constructs the BHEs.
 % -------------------------------------------------------------------------

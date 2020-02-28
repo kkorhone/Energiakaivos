@@ -130,6 +130,24 @@ def write_field(txt_name, starting_points, ending_points):
         file.write("%.20f %.20f %.20f %.20f %.20f %.20f\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i]))
     file.close()
 
+points = make_config("ico", 3)
+savetxt("config.txt", points)
+raise SystemExit
+starting_points, ending_points = make_field(points, 0, 300)
+#starting_points[:,0] += 8003.90
+#starting_points[:,1] += 2398.17
+#starting_points[:,2] -= 1438.70
+#ending_points[:,0] += 8003.90
+#ending_points[:,1] += 2398.17
+#ending_points[:,2] -= 1438.70
+plot_field(starting_points, ending_points)
+#test_for_symmetry(points)
+#plot_config("ico", points)
+write_field("kaivokentta0.txt", starting_points, ending_points)
+show()
+
+raise SystemExit
+
 for level in range(1, 5):
 
     points = make_config("ico", level)
