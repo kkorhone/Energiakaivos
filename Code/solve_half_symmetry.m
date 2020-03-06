@@ -1,4 +1,4 @@
-function [sx, sy, sz, ex, ey, ez, fac] = calc_half_symmetry(field)
+function [sx, sy, sz, ex, ey, ez, fac] = solve_half_symmetry(field)
 
 % x_min = min(field(:, 1))
 % x_max = max(field(:, 1))

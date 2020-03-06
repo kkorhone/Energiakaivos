@@ -1,4 +1,4 @@
-function model = init_sector_model(borehole_tilt, sector_angle, varargin)
+function model = init_sector_model_v2(borehole_tilt, sector_angle, varargin)
 
 % =========================================================================
 % Checks input parameters
@@ -326,126 +326,28 @@ fprintf(1, 'init_model: Creating geometry... ');
 % Creates work planes and extrusions for borehole structures
 % -------------------------------------------------------------------------
 
+fluid = HeatCarrierFluid(0, 20, 0.6/1000);
+
+pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
+
+cbhe_array = cell(1, length(borehole_tilt));
+
 for i = 1:length(borehole_tilt)
-    
-    work_plane = geometry.create(sprintf('work_plane%d', i), 'WorkPlane');
-    work_plane.set('planetype', 'normalvector');
-    work_plane.set('normalvector', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    work_plane.set('normalcoord', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    work_plane.set('unite', true);
-    
     if borehole_tilt(i) == -90
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', '0.5*sector_angle');
-        
-        circle = work_plane.geom.create('borehole_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_borehole');
-        circle.set('angle', '0.5*sector_angle');
-        
-        circle = work_plane.geom.create('outer_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_outer');
-        circle.set('angle', '0.5*sector_angle');
-        
-        circle = work_plane.geom.create('inner_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_inner');
-        circle.set('angle', '0.5*sector_angle');
-        
+        planes = {MirrorPlane(0), MirrorPlane(180-0.5*sector_angle)};
+        cbhe_array{i} = CoaxialBoreholeHeatExchanger([0 0 0], borehole_tilt(i), 0, 76e-3, L_borehole, borehole_offset, r_buffer, fluid, pipe, planes);
     else
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', 180);
-        
-        circle = work_plane.geom.create('borehole_circle', 'Circle');
-        circle.set('r', 'r_borehole');
-        circle.set('angle', 180);
-        
-        circle = work_plane.geom.create('outer_circle', 'Circle');
-        circle.set('r', 'r_outer');
-        circle.set('angle', 180);
-        
-        circle = work_plane.geom.create('inner_circle', 'Circle');
-        circle.set('r', 'r_inner');
-        circle.set('angle', 180);
-        
+        planes = {MirrorPlane(0)};
+        cbhe_array{i} = CoaxialBoreholeHeatExchanger([0 0 0], borehole_tilt(i), 0, 76e-3, L_borehole, borehole_offset, r_buffer, fluid, pipe, planes);
     end
-    
-    extrusion = geometry.create(sprintf('extrusion%d', i), 'Extrude');
-    extrusion.setIndex('distance', 'L_borehole', 0);
-    extrusion.selection('input').set(char(work_plane.tag));
-    
 end
 
-% -------------------------------------------------------------------------
-% Creates work planes and extrusions for upper buffer cylinders
-% -------------------------------------------------------------------------
-
 for i = 1:length(borehole_tilt)
-    
-    work_plane = geometry.create(sprintf('work_plane%d', i+length(borehole_tilt)), 'WorkPlane');
-    work_plane.set('planetype', 'normalvector');
-    work_plane.set('normalvector', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    work_plane.set('normalcoord', {sprintf('nx%d*(borehole_offset-r_buffer)',i) '0' sprintf('nz%d*(borehole_offset-r_buffer)',i)});
-    work_plane.set('unite', true);
-    
-    if borehole_tilt(i) == -90
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', '0.5*sector_angle');
-        
-    else
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', 180);
-        
-    end
-    
-    extrusion = geometry.create(sprintf('extrusion%d', i+length(borehole_tilt)), 'Extrude');
-    extrusion.setIndex('distance', 'r_buffer', 0);
-    extrusion.selection('input').set(char(work_plane.tag));
-    
+    cbhe_array{i}.createGeometry(geometry);
 end
 
-% -------------------------------------------------------------------------
-% Creates work planes and extrusions for lower buffer cylinders
-% -------------------------------------------------------------------------
-
 for i = 1:length(borehole_tilt)
-    
-    work_plane = geometry.create(sprintf('work_plane%d', i+2*length(borehole_tilt)), 'WorkPlane');
-    work_plane.set('planetype', 'normalvector');
-    work_plane.set('normalvector', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    work_plane.set('normalcoord', {sprintf('nx%d*(borehole_offset+L_borehole)',i) '0' sprintf('nz%d*(borehole_offset+L_borehole)',i)});
-    work_plane.set('unite', true);
-    
-    if borehole_tilt(i) == -90
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('rot', '180-0.5*sector_angle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', '0.5*sector_angle');
-        
-    else
-        
-        circle = work_plane.geom.create('buffer_circle', 'Circle');
-        circle.set('r', 'r_buffer');
-        circle.set('angle', 180);
-        
-    end
-    
-    extrusion = geometry.create(sprintf('extrusion%d', i+2*length(borehole_tilt)), 'Extrude');
-    extrusion.setIndex('distance', 'r_buffer', 0);
-    extrusion.selection('input').set(char(work_plane.tag));
-    
+    cbhe_array{i}.createSelections(geometry);
 end
 
 % -------------------------------------------------------------------------
@@ -465,295 +367,6 @@ extrusion.set('workplane', work_plane.tag);
 extrusion.selection('input').set(char(work_plane.tag));
 extrusion.setIndex('distance', 'L_borehole+2*buffer_width', 0);
 
-% -------------------------------------------------------------------------
-% Generates geometry
-% -------------------------------------------------------------------------
-
-geometry.run('fin');
-
-% =========================================================================
-% Creates selections
-% =========================================================================
-
-% -------------------------------------------------------------------------
-% Creates selections for borehole structures
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('buffer_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Buffer Domain Selection', i));
-    selection.set('r', 'r_buffer+1[mm]');
-    selection.set('rin', 'r_borehole-1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('outer_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Outer Fluid Domain Selection', i));
-    selection.set('r', 'r_borehole+1[mm]');
-    selection.set('rin', 'r_outer-1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('pipe_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Pipe Domain Selection', i));
-    selection.set('r', 'r_outer+1[mm]');
-    selection.set('rin', 'r_inner-1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('inner_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Inner Fluid Domain Selection', i));
-    selection.set('r', 'r_inner+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates borehole wall selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('borehole_wall_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Wall Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_borehole+1[mm]');
-    selection.set('rin', 'r_borehole-1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates upper buffer cylinder selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('upper_cylinder_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Upper Buffer Cylinder Domain Selection', i));
-    selection.set('r', 'r_buffer+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', 'r_buffer+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*(borehole_offset-r_buffer)',i) '0' sprintf('nz%d*(borehole_offset-r_buffer)',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates lower buffer cylinder selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('lower_cylinder_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Lower Buffer Cylinder Domain Selection', i));
-    selection.set('r', 'r_buffer+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', 'r_buffer+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*(borehole_offset+L_borehole)',i) '0' sprintf('nz%d*(borehole_offset+L_borehole)',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates outer cap selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('outer_cap_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Outer Cap Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_buffer+1[mm]');
-    selection.set('rin', 'r_borehole-1[mm]');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates inner cap selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('inner_cap_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Inner Cap Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_borehole+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates top inlet selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('top_inlet_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Top Inlet Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_borehole+1[mm]');
-    selection.set('rin', 'r_outer-1[mm]');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates top outlet selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('top_outlet_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Top Outlet Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_inner+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*borehole_offset',i) '0' sprintf('nz%d*borehole_offset',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates bottom outlet selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('bottom_outlet_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Bottom Outlet Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_borehole+1[mm]');
-    selection.set('rin', 'r_outer-1[mm]');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*(borehole_offset+L_borehole)',i) '0' sprintf('nz%d*(borehole_offset+L_borehole)',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates bottom inlet selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('bottom_inlet_selection%d', i), 'CylinderSelection');
-    selection.label(sprintf('Borehole #%d Bottom Inlet Selection', i));
-    selection.set('entitydim', 2);
-    selection.set('r', 'r_inner+1[mm]');
-    selection.set('rin', '0');
-    selection.set('top', '+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('angle1', '0');
-    selection.set('angle2', '360');
-    selection.set('pos', {sprintf('nx%d*(borehole_offset+L_borehole)',i) '0' sprintf('nz%d*(borehole_offset+L_borehole)',i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates edge selections
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('inner_edge_selection%d',i), 'CylinderSelection');
-    selection.set('entitydim', 1);
-    selection.label(sprintf('Borehole #%d Inner Fluid Edge Selection', i));
-    selection.set('r', '1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_inner',i,i) '0' sprintf('nz%d*borehole_offset+nx%d*r_inner',i,i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-for i = 1:length(borehole_tilt)
-    selection = geometry.create(sprintf('outer_edge_selection%d',i), 'CylinderSelection');
-    selection.set('entitydim', 1);
-    selection.label(sprintf('Borehole #%d Outer Fluid Edge Selection', i));
-    selection.set('r', '1[mm]');
-    selection.set('top', 'L_borehole+1[mm]');
-    selection.set('bottom', '-1[mm]');
-    selection.set('pos', {sprintf('nx%d*borehole_offset-nz%d*r_outer',i,i) '0' sprintf('nz%d*borehole_offset+nx%d*r_outer',i,i)});
-    selection.set('axis', {sprintf('nx%d',i) '0' sprintf('nz%d',i)});
-    selection.set('condition', 'allvertices');
-end
-
-% -------------------------------------------------------------------------
-% Creates selection for borehole domains
-% -------------------------------------------------------------------------
-
-selection = geometry.create('borehole_domains_selection', 'UnionSelection');
-selection.label('Borehole Domains Selection');
-selection.set('entitydim', 3);
-selection.set('input', [compose('buffer_selection%d', 1:length(borehole_tilt)), compose('outer_selection%d', 1:length(borehole_tilt)), compose('pipe_selection%d', 1:length(borehole_tilt)), compose('inner_selection%d', 1:length(borehole_tilt))]);
-
-% -------------------------------------------------------------------------
-% Creates selection for cap cylinders
-% -------------------------------------------------------------------------
-
-selection = geometry.create('cap_cylinders_selection', 'UnionSelection');
-selection.label('Cap Cylinders Selection');
-selection.set('entitydim', 3);
-selection.set('input', [compose('upper_cylinder_selection%d', 1:length(borehole_tilt)), compose('lower_cylinder_selection%d', 1:length(borehole_tilt))]);
-
-% -------------------------------------------------------------------------
-% Creates selection for top surface boundary
-% -------------------------------------------------------------------------
-
 selection = geometry.create('surface_selection', 'CylinderSelection');
 selection.label('Surface Selection');
 selection.set('entitydim', 2);
@@ -762,10 +375,6 @@ selection.set('top', '+1[mm]');
 selection.set('bottom', '-1[mm]');
 selection.set('pos', {'0' '0' 'buffer_width'});
 selection.set('condition', 'allvertices');
-
-% -------------------------------------------------------------------------
-% Creates selection for bottom surface boundary
-% -------------------------------------------------------------------------
 
 selection = geometry.create('bottom_selection', 'CylinderSelection');
 selection.label('Bottom Selection');
@@ -777,7 +386,7 @@ selection.set('pos', {'0' '0' '-L_borehole-buffer_width'});
 selection.set('condition', 'allvertices');
 
 % -------------------------------------------------------------------------
-% Rebuilds geometry
+% Generates geometry
 % -------------------------------------------------------------------------
 
 geometry.run('fin');
@@ -795,81 +404,8 @@ fprintf(1, 'init_model: Creating mesh... ');
 % -------------------------------------------------------------------------
 
 for i = 1:length(borehole_tilt)
-    
-    triangular_mesh = mesh.create(sprintf('inner_cap_mesh%d', i), 'FreeTri');
-    triangular_mesh.label(sprintf('Borehole #%d Inner Cap Mesh', i));
-    triangular_mesh.selection.named(sprintf('geometry_inner_cap_selection%d', i));
-    
-    size = triangular_mesh.create('size', 'Size');
-    size.set('hauto', 1);
-    size.set('custom', true);
-    size.set('hmaxactive', true);
-    if borehole_tilt(i) == -90
-        size.set('hmax', '2[mm]');
-    else
-        size.set('hmax', '5[mm]');
-    end
-    
+    cbhe_array{i}.createMesh(mesh);
 end
-
-% -------------------------------------------------------------------------
-% Crates outer triangle mesh for sweeping
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    
-    triangular_mesh = model.component('component').mesh('mesh').create(sprintf('outer_cap_mesh%d', i), 'FreeTri');
-    triangular_mesh.label(sprintf('Borehole #%d Outer Cap Mesh', i));
-    triangular_mesh.selection.named(sprintf('geometry_outer_cap_selection%d', i));
-    
-    size = triangular_mesh.create('size', 'Size');
-    size.set('hauto', 1);
-    size.set('custom', 'on');
-    if borehole_tilt(i) == -90
-        size.set('hmax', '20[mm]');
-        size.set('hmaxactive', true);
-    end
-    size.set('hgrad', 1.2);
-    size.set('hgradactive', true);
-    
-end
-
-% -------------------------------------------------------------------------
-% Crates swept mesh
-% -------------------------------------------------------------------------
-
-swept_mesh = mesh.create('swept_mesh', 'Sweep');
-swept_mesh.label(sprintf('Borehole #%d Swept Mesh', i));
-swept_mesh.selection.geom('geometry', 3);
-swept_mesh.selection.named('geometry_borehole_domains_selection');
-
-distribution = swept_mesh.create('distribution', 'Distribution');
-distribution.set('type', 'predefined');
-distribution.set('elemcount', 300);
-distribution.set('elemratio', 100);
-distribution.set('symmetric', true);
-
-% -------------------------------------------------------------------------
-% Crates tetrahedral cap cylinder mesh
-% -------------------------------------------------------------------------
-
-tetrahedral_mesh = mesh.create('cap_cylinders_mesh', 'FreeTet');
-tetrahedral_mesh.label('Cap Cylinder Meshes');
-tetrahedral_mesh.selection.geom('geometry', 3);
-tetrahedral_mesh.selection.named('geometry_cap_cylinders_selection');
-
-size = tetrahedral_mesh.create('size', 'Size');
-size.set('hauto', 3);
-
-% -------------------------------------------------------------------------
-% Crates tetrahedral bedrock mesh
-% -------------------------------------------------------------------------
-
-tetrahedral_mesh = mesh.create('bedrock_mesh', 'FreeTet');
-tetrahedral_mesh.label('Bedrock Mesh');
-
-size = tetrahedral_mesh.create('size', 'Size');
-size.set('hauto', 2);
 
 % hauto 9 = extremenly coarse
 % hauto 8 = extra coarse
@@ -894,85 +430,9 @@ fprintf(1, 'Done.\n');
 
 fprintf(1, 'init_model: Creating operators... ');
 
-% -------------------------------------------------------------------------
-% Creates borehole wall integration operators
-% -------------------------------------------------------------------------
-
 for i = 1:length(borehole_tilt)
-    operator = component.cpl.create(sprintf('wall_intop%d', i), 'Integration');
-    operator.label(sprintf('Borehole #%d Wall Integration Operator', i));
-    operator.selection.named(sprintf('geometry_borehole_wall_selection%d', i));
+    cbhe_array{i}.createOperators(component, geometry);
 end
-
-% -------------------------------------------------------------------------
-% Creates bottom outlet average operators
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    operator = component.cpl.create(sprintf('bottom_outlet_aveop%d', i), 'Average');
-    operator.label(sprintf('Borehole #%d Bottom Outlet Average Operator', i));
-    operator.selection.named(sprintf('geometry_bottom_outlet_selection%d', i));
-end
-
-% -------------------------------------------------------------------------
-% Creates top outlet average operators
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    operator = component.cpl.create(sprintf('top_outlet_aveop%d', i), 'Average');
-    operator.label(sprintf('Borehole #%d Top Outlet Average Operator', i));
-    operator.selection.named(sprintf('geometry_top_outlet_selection%d', i));
-end
-
-fprintf(1, 'Done.\n');
-
-% =========================================================================
-% Creates component variables
-% =========================================================================
-
-fprintf(1, 'init_model: Creating component variables... ');
-
-variables = component.variable.create('component_variables');
-variables.label('Component Variables');
-
-for i = 1:length(borehole_tilt)
-
-    if borehole_tilt(i) == -90
-        variables.set(sprintf('Q_wall%d', i), sprintf('num_sectors*2*wall_intop%d(physics.ndflux)', i));
-    else
-        variables.set(sprintf('Q_wall%d', i), sprintf('2*wall_intop%d(physics.ndflux)', i));
-    end
-    
-    if i == 1
-        if borehole_tilt(i) == -90
-            summation_expression = sprintf('Q_wall%d', i);
-            counter_expression = sprintf('1');
-        else
-            summation_expression = sprintf('num_sectors*Q_wall%d', i);
-            counter_expression = sprintf('num_sectors');
-        end
-    else
-        if borehole_tilt(i) == -90
-            summation_expression = sprintf('%s+Q_wall%d', summation_expression, i);
-            counter_expression = sprintf('%s+1', counter_expression);
-        else
-            summation_expression = sprintf('%s+num_sectors*Q_wall%d', summation_expression, i);
-            counter_expression = sprintf('%s+num_sectors', counter_expression);
-        end
-    end
-    
-end
-
-for i = 1:length(borehole_tilt)
-    variables.set(sprintf('T_bottom%d', i), sprintf('bottom_outlet_aveop%d(T)', i));
-end
-
-for i = 1:length(borehole_tilt)
-    variables.set(sprintf('T_outlet%d', i), sprintf('top_outlet_aveop%d(T)', i));
-end
-
-variables.set('Q_walls', summation_expression);
-variables.set('num_boreholes', counter_expression);
 
 fprintf(1, 'Done.\n');
 
@@ -1016,88 +476,27 @@ physics.feature('hf2').selection.named('geometry_bottom_selection');
 physics.feature('hf2').set('q0', '+q_geothermal');
 physics.feature('hf2').label('Geothermal Heat Flux BC');
 
-% -------------------------------------------------------------------------
-% Crates outer fluid
-% -------------------------------------------------------------------------
-
 for i = 1:length(borehole_tilt)
-    fluid = physics.create(sprintf('outer_fluid%d', i), 'FluidHeatTransferModel', 3);
-    fluid.label(sprintf('Borehole #%d Outer Fluid', i));
-    fluid.selection.named(sprintf('geometry_outer_selection%d', i));
-    % fluid.set('u', {sprintf('+nx%d*v_outer*step(t[1/a])',i) '0' sprintf('+nz%d*v_outer*step(t[1/a])',i)});
-    fluid.set('u', {sprintf('+nx%d*v_outer',i) '0' sprintf('+nz%d*v_outer',i)});
-    fluid.set('k_mat', 'userdef');
-    fluid.set('k', {sprintf('kxx_%d',i); sprintf('kyx_%d',i); sprintf('kzx_%d',i); sprintf('kxy_%d',i); sprintf('kyy_%d',i); sprintf('kzy_%d',i); sprintf('kxz_%d',i); sprintf('kyz_%d',i); sprintf('kzz_%d',i)});
-    fluid.set('rho_mat', 'userdef');
-    fluid.set('rho', 'rho_fluid');
-    fluid.set('Cp_mat', 'userdef');
-    fluid.set('Cp', 'Cp_fluid');
-    fluid.set('gamma_mat', 'userdef');
-    fluid.set('gamma', '1');
+    cbhe_array{i}.createPhysics(physics);
 end
 
-% -------------------------------------------------------------------------
-% Crates pipe wall solid
-% -------------------------------------------------------------------------
-
 for i = 1:length(borehole_tilt)
-    solid = physics.create(sprintf('pipe_solid%d',i), 'SolidHeatTransferModel', 3);
-    solid.label(sprintf('Borehole #%d Pipe Solid', i));
-    solid.selection.named(sprintf('geometry_pipe_selection%d', i));
-    solid.set('k_mat', 'userdef');
-    solid.set('k', {'k_pipe' '0' '0' '0' 'k_pipe' '0' '0' '0' 'k_pipe'});
-    solid.set('rho_mat', 'userdef');
-    solid.set('rho', 'rho_pipe');
-    solid.set('Cp_mat', 'userdef');
-    solid.set('Cp', 'Cp_pipe');
+    cbhe_array{i}.createBoundaryConditions(physics, 'T_inlet');
 end
 
-% -------------------------------------------------------------------------
-% Crates inner fluid
-% -------------------------------------------------------------------------
+fprintf(1, 'Done.\n');
+
+% =========================================================================
+% Creates component variables
+% =========================================================================
+
+fprintf(1, 'init_model: Creating component variables... ');
+
+variables = component.variable.create('component_variables');
+variables.label('Component Variables');
 
 for i = 1:length(borehole_tilt)
-    fluid = physics.create(sprintf('inner_fluid%d', i), 'FluidHeatTransferModel', 3);
-    fluid.label(sprintf('Borehole #%d Inner Fluid', i));
-    fluid.selection.named(sprintf('geometry_inner_selection%d', i));
-    % fluid.set('u', {sprintf('-nx%d*v_inner*step(t[1/a])',i) '0' sprintf('-nz%d*v_inner*step(t[1/a])',i)});
-    fluid.set('u', {sprintf('-nx%d*v_inner',i) '0' sprintf('-nz%d*v_inner',i)});
-    fluid.set('k_mat', 'userdef');
-    fluid.set('k', {sprintf('kxx_%d',i); sprintf('kyx_%d',i); sprintf('kzx_%d',i); sprintf('kxy_%d',i); sprintf('kyy_%d',i); sprintf('kzy_%d',i); sprintf('kxz_%d',i); sprintf('kyz_%d',i); sprintf('kzz_%d',i)});
-    fluid.set('rho_mat', 'userdef');
-    fluid.set('rho', 'rho_fluid');
-    fluid.set('Cp_mat', 'userdef');
-    fluid.set('Cp', 'Cp_fluid');
-    fluid.set('gamma_mat', 'userdef');
-    fluid.set('gamma', '1');
-end
-
-% -------------------------------------------------------------------------
-% Crates top inlet boundary conditions
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    temperature_bc = physics.create(sprintf('top_inlet_temperature_bc%d', i), 'TemperatureBoundary', 2);
-    temperature_bc.label(sprintf('Borehole #%d Top Inlet Temperature BC', i));
-    temperature_bc.selection.named(sprintf('geometry_top_inlet_selection%d', i));
-    if length(T_inlet) == 1
-        % temperature_bc.set('T0', '(1-step(t[1/a]))*T_initial(z-tunnel_depth)+step(t[1/a])*T_inlet');
-        temperature_bc.set('T0', 'T_inlet');
-    else
-        % temperature_bc.set('T0', '(1-step(t[1/a]))*T_initial(z-tunnel_depth)+step(t[1/a])*T_inlet(t)');
-        temperature_bc.set('T0', 'T_inlet(t)');
-    end
-end
-
-% -------------------------------------------------------------------------
-% Crates bottom inlet boundary conditions
-% -------------------------------------------------------------------------
-
-for i = 1:length(borehole_tilt)
-    temperature_bc = physics.create(sprintf('bottom_inlet_temperature_bc%d', i), 'TemperatureBoundary', 2);
-    temperature_bc.label(sprintf('Borehole #%d Bottom Inlet Temperature BC', i));
-    temperature_bc.selection.named(sprintf('geometry_bottom_inlet_selection%d', i));
-    temperature_bc.set('T0', sprintf('T_bottom%d', i));
+    cbhe_array{i}.createVariables(variables, physics);
 end
 
 fprintf(1, 'Done.\n');
@@ -1185,6 +584,8 @@ model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 % model.sol('sol1').runAll;
 
 fprintf(1, 'Done.\n');
+
+return
 
 % =========================================================================
 % Creates results

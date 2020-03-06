@@ -614,4 +614,45 @@ classdef CoaxialBoreholeHeatExchanger
         
     end
     
+%     methods (Static)
+%         
+%         function CreateField(file_name)
+%             
+%             % Reads the borehole field configuration:
+%             % starting point (x, y, z) and ending point (x, y, z) and
+%             % borehole factor.
+%             
+%             field_config = load(file_name);
+%             
+%             sx = field_config(:, 1);
+%             sy = field_config(:, 2);
+%             sz = field_config(:, 3);
+%             
+%             ex = field_config(:, 4);
+%             ey = field_config(:, 5);
+%             ez = field_config(:, 6);
+%             
+%             theta = acos(z ./ r);
+%             phi = atan2(y, x);
+% 
+%             tilt = 90 - 180 * theta / pi;
+%             azim = 180 * phi / pi;
+% 
+%             i = [];
+% 
+%             for j = 1:length(tilt)
+%                 if (abs(azim(j)) < 1e-6) || (abs(azim(j)-90) < 1e-6)
+%                     i = [i j];
+%                 elseif 0 <= azim(j) && azim(j) <= 90
+%                     i = [i j];
+%                 end
+%             end
+% 
+%             tilt = tilt(i);
+%             azim = azim(i);
+%             
+%         end
+%         
+%     end
+    
 end

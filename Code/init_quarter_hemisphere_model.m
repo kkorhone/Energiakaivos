@@ -1,18 +1,21 @@
-function model = init_quarter_cylinder_model(file_name)
+function model = init_quarter_hemisphere_model(file_name)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
-field_depth = 100;
+% =========================================================================
+% Sets up parameters.
+% =========================================================================
+
+tunnel_depth = 100;
 model_radius = 600;
 model_height = 600;
+tunnel_radius = 30;
+buffer_radius = 1;
+borehole_length = 300;
+borehole_diameter = 0.076;
 
-d_borehole = 0.076;
-L_borehole = 300;
-borehole_offset = 30;
-r_buffer = 1;
-
-fluid = HeatCarrierFluid(0, 20, 0.6/1000);
-pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
+working_fluid = HeatCarrierFluid(0, 20, 0.6/1000);
+coaxial_pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
 
 % =========================================================================
 % Constructs the borehole field.
@@ -118,19 +121,19 @@ bhe_array = {};
 
 for i = 1:length(tilt)
     if abs(tilt(i) + 90) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
         fprintf(1, 'Vertical BHE\n');
         bhe_factors(end+1) = 1;
     elseif abs(azim(i)) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Negative_XZ_Plane});
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane});
         fprintf(1, 'X Axis BHE\n');
         bhe_factors(end+1) = 2;
     elseif abs(azim(i) - 90) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe, {MirrorPlane.Positive_XZ_Plane});
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Positive_XZ_Plane});
         fprintf(1, 'Y Axis BHE\n');
         bhe_factors(end+1) = 2;
     else
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -field_depth], tilt(i), azim(i), d_borehole, L_borehole, borehole_offset, r_buffer, fluid, pipe);
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe);
         fprintf(1, 'Quadrant BHE\n');
         bhe_factors(end+1) = 4;
     end
@@ -300,7 +303,10 @@ end
 % Creates bedrock mesh.
 % -------------------------------------------------------------------------
 
-mesh.create('bedrock_mesh', 'FreeTet');
+bedrock_mesh = mesh.create('bedrock_mesh', 'FreeTet');
+
+bedrock_mesh_size = bedrock_mesh.create('bedrock_mesh_size', 'Size');
+bedrock_mesh_size.set('hauto', 4);
 
 % -------------------------------------------------------------------------
 % Runs the mesh.
@@ -465,8 +471,8 @@ vars.set('Q_total', expr);
 % Creates temperature drop variable.
 % -------------------------------------------------------------------------
 
-% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, length(bhe_array), fluid.flowRate));
-vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', fluid.density, fluid.specificHeatCapacity, num_boreholes, fluid.flowRate));
+% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, length(bhe_array), working_fluid.flowRate));
+vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, num_boreholes, working_fluid.flowRate));
 
 fprintf(1, 'Done.\n');
 

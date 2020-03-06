@@ -1,4 +1,4 @@
-function calc_quarter_symmetry(sx, sy, sz, ex, ey, ez)
+function solve_quarter_symmetry(sx, sy, sz, ex, ey, ez)
 
 % =========================================================================
 % Centers the BHEs.
