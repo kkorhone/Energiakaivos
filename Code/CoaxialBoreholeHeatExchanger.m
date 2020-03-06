@@ -24,14 +24,14 @@ classdef CoaxialBoreholeHeatExchanger
     
     properties
         id
-        boreholeCollar, boreholeFooter, boreholeDiameter, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes
+        boreholeCollar, boreholeFooter, boreholeDiameter, flowRate, heatCarrierFluid, coaxialPipe, mirrorPlanes, bufferRadius
         boreholeRadius, boreholeLength, boreholeAxis, thermalConductivityTensor
         outerFluidVelocity, innerFluidVelocity
     end
     
     methods
         
-        function obj = CoaxialBoreholeHeatExchanger(boreholeCollar, boreholeFooter, boreholeDiameter, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes)
+        function obj = CoaxialBoreholeHeatExchanger(boreholeCollar, boreholeFooter, boreholeDiameter, coaxialPipe, flowRate, heatCarrierFluid, varargin)
             
             persistent id
             
@@ -47,8 +47,8 @@ classdef CoaxialBoreholeHeatExchanger
                 error('Borehole must have positive diameter.');
             end
             
-            if bufferRadius <= 0
-                error('Buffer must have positive radius.');
+            if flowRate <= 0
+                error('Flow rate must be positive.');
             end
             
             if isempty(id)
@@ -63,7 +63,7 @@ classdef CoaxialBoreholeHeatExchanger
             obj.boreholeFooter = boreholeFooter;
             obj.boreholeDiameter = boreholeDiameter;
             obj.boreholeLength = sqrt((boreholeFooter(1)-boreholeCollar(1))^2+(boreholeFooter(2)-boreholeCollar(2))^2+(boreholeFooter(3)-boreholeCollar(3))^2);
-            obj.bufferRadius = bufferRadius;
+            obj.flowRate = flowRate;
             obj.heatCarrierFluid = heatCarrierFluid;
             obj.coaxialPipe = coaxialPipe;
             
@@ -73,12 +73,23 @@ classdef CoaxialBoreholeHeatExchanger
                 error('Buffer radius must be larger than borehole radius.');
             end
             
-            if nargin == 6
-                obj.mirrorPlanes = [];
-            elseif nargin == 7
-                obj.mirrorPlanes = mirrorPlanes;
-            else
-                error('Not enough input arguments.');
+            % Handles variable arguments in.
+
+            obj.mirrorPlanes = [];
+            obj.bufferRadius = 1.0;
+            
+            for i = 1:2:numel(varargin)
+                if strcmpi(varargin{i}, 'mirrorplanes')
+                    obj.mirrorPlanes = varargin{i+1};
+                elseif strcmpi(varargin{i}, 'bufferradius')
+                    obj.bufferRadius = varargin{i+1};
+                else
+                    error('Invalid named argument: "%s".', varargin{i});
+                end
+            end
+            
+            if obj.bufferRadius <= 0
+                error('Buffer must have positive radius.');
             end
             
             % Calculates borehole axis.
@@ -113,11 +124,11 @@ classdef CoaxialBoreholeHeatExchanger
             outerFluidArea = pi * obj.boreholeRadius^2 - pi * coaxialPipe.outerWallRadius^2;
             innerFluidArea = pi * coaxialPipe.innerWallRadius^2;
             
-            obj.outerFluidVelocity = heatCarrierFluid.flowRate / outerFluidArea * obj.boreholeAxis;
-            obj.innerFluidVelocity = heatCarrierFluid.flowRate / innerFluidArea * -obj.boreholeAxis;
+            obj.outerFluidVelocity = obj.flowRate / outerFluidArea * obj.boreholeAxis;
+            obj.innerFluidVelocity = obj.flowRate / innerFluidArea * -obj.boreholeAxis;
             
-            fprintf(1, 'Constructed CoaxialBoreholeHeatExchanger %d (tilt=%s azimuth=%s length=%s)\n', obj.id, num2str(boreholeTilt), num2str(boreholeAzimuth), num2str(obj.boreholeLength));
-            
+            fprintf(1, 'CoaxialBoreholeHeatExchanger(id=%d tilt=%.1f azimuth=%.1f length=%.1f Q=%.3f)\n', obj.id, boreholeTilt, boreholeAzimuth, obj.boreholeLength, obj.flowRate*1000);
+
         end
         
         function plot(obj)
@@ -427,7 +438,7 @@ classdef CoaxialBoreholeHeatExchanger
             bottomOutletSelection.label(sprintf('Bottom Outlet Selection %d', obj.id));
             
             bottomOutletSelection.set('entitydim', 2);
-            bottomOutletSelection.set('r', obj.radius+0.001);
+            bottomOutletSelection.set('r', obj.boreholeRadius+0.001);
             bottomOutletSelection.set('rin', obj.coaxialPipe.outerWallRadius-0.001);
             bottomOutletSelection.set('top', +0.001);
             bottomOutletSelection.set('bottom', -0.001);
@@ -645,7 +656,7 @@ classdef CoaxialBoreholeHeatExchanger
             variables.set(sprintf('T_bottom%d', obj.id), sprintf('bottom_outlet_average_operator%d(T)', obj.id));
             variables.set(sprintf('A_wall%d', obj.id), sprintf('borehole_wall_integration_operator%d(1)', obj.id));
             variables.set(sprintf('Q_wall%d', obj.id), sprintf('symmetry_factor%d*borehole_wall_integration_operator%d(%s.ndflux)', obj.id, obj.id, physics.tag));
-            variables.set(sprintf('symmetry_factor%d', obj.id), sprintf('2*pi*%s[m]*%s[m]/A_wall%d', to_cell_array(obj.radius), to_cell_array(obj.length), obj.id));
+            variables.set(sprintf('symmetry_factor%d', obj.id), sprintf('2*pi*%s[m]*%s[m]/A_wall%d', to_cell_array(obj.boreholeRadius), to_cell_array(obj.boreholeLength), obj.id));
             
         end
         

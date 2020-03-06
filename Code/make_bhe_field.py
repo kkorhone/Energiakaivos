@@ -114,15 +114,15 @@ def plot_bhe_field(bhe_collars, bhe_footers, plot_title):
         ax.plot([bhe_footers[i,0]], [bhe_footers[i,1]], [bhe_footers[i,2]], "r.")
     title("%s (%d BHEs)" % (plot_title, bhe_collars.shape[0]))
 
-def write_field(txt_name, starting_points, ending_points):
-    sx, sy, sz = starting_points.T
-    ex, ey, ez = ending_points.T
+def write_bhe_field(txt_name, bhe_collars, bhe_footers, bhe_factors):
+    sx, sy, sz = bhe_collars.T
+    ex, ey, ez = bhe_footers.T
     file = open(txt_name, "w")
-    for i in range(starting_points.shape[0]):
-        file.write("%.20f %.20f %.20f %.20f %.20f %.20f\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i]))
+    for i in range(len(bhe_factors)):
+        file.write("%.20f %.20f %.20f %.20f %.20f %.20f %6d\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i], bhe_factors[i]))
     file.close()
 
-bhe_axes = make_bhe_axes("ico", 2)
+bhe_axes = make_bhe_axes("ico", 1)
 
 num_full_field = bhe_axes.shape[0]
 
@@ -139,6 +139,8 @@ if sum_bhe_factors != num_full_field:
     raise SystemExit("Asymmetry!")
 
 bhe_collars, bhe_footers = make_bhe_field(bhe_axes, 50, 100, 100)
+
+write_bhe_field("test.txt", bhe_collars, bhe_footers, bhe_factors)
 
 plot_bhe_axes(bhe_axes, "BHE Axes")
 plot_bhe_field(bhe_collars, bhe_footers, "BHE Field")

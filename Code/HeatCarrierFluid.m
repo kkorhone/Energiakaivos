@@ -13,25 +13,20 @@ classdef HeatCarrierFluid
     end
     
     properties
-        ethanolConcentration, fluidTemperature, flowRate
+        ethanolConcentration, fluidTemperature
         freezingPoint, density, specificHeatCapacity, thermalConductivity, dynamicViscosity
     end
     
     methods
         
-        function obj = HeatCarrierFluid(ethanolConcentration, fluidTemperature, flowRate)
+        function obj = HeatCarrierFluid(ethanolConcentration, fluidTemperature)
             
-            if ~inpolygon(ethanolConcentration, fluidTemperature, DATA_POLYGON_ETHANOL_CONCENTRATION, DATA_POLYGON_FLUID_TEMPERATURE)
+            if ~inpolygon(ethanolConcentration, fluidTemperature, HeatCarrierFluid.DATA_POLYGON_ETHANOL_CONCENTRATION, HeatCarrierFluid.DATA_POLYGON_FLUID_TEMPERATURE)
                 error('Invalid ethanol concentration and fluid temperature.');
-            end
-            
-            if flowRate <= 0
-                error('Flow rate must be positive.');
             end
             
             obj.ethanolConcentration = ethanolConcentration;
             obj.fluidTemperature = fluidTemperature;
-            obj.flowRate = flowRate;
             
             g = [];
             for i = 0:5
@@ -49,6 +44,8 @@ classdef HeatCarrierFluid
             obj.specificHeatCapacity = dot(g, HeatCarrierFluid.SPECIFIC_HEAT_CAPACITY_COEFFICIENTS);
             obj.thermalConductivity = dot(g, HeatCarrierFluid.THERMAL_CONDUCTIVITY_COEFFICIENTS);
             obj.dynamicViscosity = exp(dot(g, HeatCarrierFluid.DYNAMIC_VISCOSITY_COEFFOCIENTS));
+            
+            fprintf(1, 'HeatCarrierFluid(k=%.3f Cp=%.1f rho=%.1f\n', obj.thermalConductivity, obj.specificHeatCapacity, obj.density);
             
         end
         

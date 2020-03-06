@@ -6,16 +6,16 @@ clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 % Sets up parameters.
 % =========================================================================
 
-tunnel_depth = 100;
 model_radius = 600;
 model_height = 600;
-tunnel_radius = 30;
-buffer_radius = 1;
-borehole_length = 300;
+
+buffer_radius = 1.0;
 borehole_diameter = 0.076;
 
-working_fluid = HeatCarrierFluid(0, 20, 0.6/1000);
-coaxial_pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
+working_fluid = HeatCarrierFluid(0.0, 20.0);
+coaxial_pipe = CoaxialPipe(0.050, 0.032, 0.1, 1900, 900);
+
+flow_rate = 0.0006;
 
 % =========================================================================
 % Constructs the borehole field.
@@ -40,7 +40,7 @@ bhe_factors = field_config(:, 7);
 bhe_array = {};
 
 for i = 1:length(bhe_factors)
-    bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), bhe_diameter, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+    bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
     fprintf(1, 'bhe_factor=%d\n', bhe_factors(i));
 end
 
@@ -49,7 +49,7 @@ fprintf(1, 'sum(bhe_factors)=%d length(bhe_array)=%d\n', sum(bhe_factors), lengt
 plot_bhe_field(bhe_array)
 
 pause(1)
-return
+
 % =========================================================================
 % Creates a new model.
 % =========================================================================
@@ -360,7 +360,7 @@ for i = 2:length(bhe_array)
     expr = sprintf('%s+%d*T_outlet%d', expr, bhe_factors(i), bhe_array{i}.id);
 end
 
-expr = sprintf('(%s)/%d', expr, num_boreholes);
+expr = sprintf('(%s)/%d', expr, sum(bhe_factors));
 
 vars.set('T_outlet', expr);
 
@@ -380,8 +380,14 @@ vars.set('Q_total', expr);
 % Creates temperature drop variable.
 % -------------------------------------------------------------------------
 
+total_rate = 0;
+
+for i = 1:numel(bhe_array)
+    total_rate = total_rate + bhe_array{i}.flowRate;
+end
+
 % vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, length(bhe_array), working_fluid.flowRate));
-vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, num_boreholes, working_fluid.flowRate));
+vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, total_rate));
 
 fprintf(1, 'Done.\n');
 
