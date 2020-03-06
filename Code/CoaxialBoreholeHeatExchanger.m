@@ -24,16 +24,32 @@ classdef CoaxialBoreholeHeatExchanger
     
     properties
         id
-        location, tilt, azimuth, diameter, length, offset, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes
-        radius, axis, thermalConductivityTensor
+        boreholeCollar, boreholeFooter, boreholeDiameter, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes
+        boreholeRadius, boreholeLength, boreholeAxis, thermalConductivityTensor
         outerFluidVelocity, innerFluidVelocity
     end
     
     methods
         
-        function obj = CoaxialBoreholeHeatExchanger(location, tilt, azimuth, diameter, length, offset, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes)
+        function obj = CoaxialBoreholeHeatExchanger(boreholeCollar, boreholeFooter, boreholeDiameter, bufferRadius, heatCarrierFluid, coaxialPipe, mirrorPlanes)
             
             persistent id
+            
+            if boreholeFooter(3) > boreholeCollar(3)
+                error('Borehole cannot be inclined upwards.');
+            end
+            
+            if (boreholeFooter(1) == boreholeCollar(1)) && (boreholeFooter(2) == boreholeCollar(2)) && (boreholeFooter(3) == boreholeCollar(3))
+                error('Borehole must have positive length.');
+            end
+            
+            if boreholeDiameter <= 0
+                error('Borehole must have positive diameter.');
+            end
+            
+            if bufferRadius <= 0
+                error('Buffer must have positive radius.');
+            end
             
             if isempty(id)
                 id = 1;
@@ -43,43 +59,71 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.id = id;
             
-            obj.location = location;
-            obj.tilt = tilt;
-            obj.azimuth = azimuth;
-            obj.diameter = diameter;
-            obj.length = length;
-            obj.offset = offset;
+            obj.boreholeCollar = boreholeCollar;
+            obj.boreholeFooter = boreholeFooter;
+            obj.boreholeDiameter = boreholeDiameter;
+            obj.boreholeLength = sqrt((boreholeFooter(1)-boreholeCollar(1))^2+(boreholeFooter(2)-boreholeCollar(2))^2+(boreholeFooter(3)-boreholeCollar(3))^2);
             obj.bufferRadius = bufferRadius;
             obj.heatCarrierFluid = heatCarrierFluid;
             obj.coaxialPipe = coaxialPipe;
             
-            obj.radius = 0.5 * diameter;
+            obj.boreholeRadius = 0.5 * boreholeDiameter;
             
-            if nargin == 9
-                obj.mirrorPlanes = [];
-            else
-                obj.mirrorPlanes = mirrorPlanes;
+            if obj.bufferRadius <= obj.boreholeRadius
+                error('Buffer radius must be larger than borehole radius.');
             end
             
-            theta = pi * tilt / 180;
-            phi = pi * azimuth / 180;
+            if nargin == 6
+                obj.mirrorPlanes = [];
+            elseif nargin == 7
+                obj.mirrorPlanes = mirrorPlanes;
+            else
+                error('Not enough input arguments.');
+            end
+            
+            % Calculates borehole axis.
+            
+            obj.boreholeAxis = [boreholeFooter(1)-boreholeCollar(1), boreholeFooter(2)-boreholeCollar(2), boreholeFooter(3)-boreholeCollar(3)] / obj.boreholeLength;
+            
+            theta = acos(obj.boreholeAxis(3));
+            phi = atan2(obj.boreholeAxis(2), obj.boreholeAxis(1));
+
+            % Constructs rotation matrix.
+
+            boreholeTilt = 90 - 180 * theta / pi;
+            boreholeAzimuth = 180 * phi / pi;
+            
+            if boreholeAzimuth < 0
+                boreholeAzimuth = boreholeAzimuth + 360;
+            end
+
+            theta = pi * boreholeTilt / 180;
+            phi = pi * boreholeAzimuth / 180;
             
             rotationMatrix = [cos(phi)*cos(theta) -sin(phi) -sin(theta)*cos(phi); sin(phi)*cos(theta) cos(phi) -sin(phi)*sin(theta); sin(theta) 0 cos(theta)];
             
-            obj.axis = transpose(rotationMatrix * transpose([1 0 0]));
+            % Constructs thermal conductivity tensor.
             
             thermalConductivityTensor = [[heatCarrierFluid.thermalConductivity, 0, 0]; [0, 1000, 0]; [0, 0, 1000]];
             
-            obj.thermalConductivityTensor = rotationMatrix * thermalConductivityTensor * inv(rotationMatrix);
+            obj.thermalConductivityTensor = rotationMatrix * thermalConductivityTensor * pinv(rotationMatrix);
             
-            outerFluidArea = pi * obj.radius^2 - pi * coaxialPipe.outerWallRadius^2;
+            % Calculates fluid velocities.
+            
+            outerFluidArea = pi * obj.boreholeRadius^2 - pi * coaxialPipe.outerWallRadius^2;
             innerFluidArea = pi * coaxialPipe.innerWallRadius^2;
             
-            obj.outerFluidVelocity = heatCarrierFluid.flowRate / outerFluidArea * obj.axis;
-            obj.innerFluidVelocity = heatCarrierFluid.flowRate / innerFluidArea * -obj.axis;
+            obj.outerFluidVelocity = heatCarrierFluid.flowRate / outerFluidArea * obj.boreholeAxis;
+            obj.innerFluidVelocity = heatCarrierFluid.flowRate / innerFluidArea * -obj.boreholeAxis;
             
-            fprintf(1, 'Constructed CoaxialBoreholeHeatExchanger %d (tilt=%s azimuth=%s)\n', obj.id, num2str(obj.tilt), num2str(obj.azimuth));
+            fprintf(1, 'Constructed CoaxialBoreholeHeatExchanger %d (tilt=%s azimuth=%s length=%s)\n', obj.id, num2str(boreholeTilt), num2str(boreholeAzimuth), num2str(obj.boreholeLength));
             
+        end
+        
+        function plot(obj)
+            plot3(obj.boreholeCollar(1), obj.boreholeCollar(2), obj.boreholeCollar(3), 'r.')
+            plot3(obj.boreholeFooter(1), obj.boreholeFooter(2), obj.boreholeFooter(3), 'ro')
+            plot3([obj.boreholeCollar(1), obj.boreholeFooter(1)], [obj.boreholeCollar(2), obj.boreholeFooter(2)], [obj.boreholeCollar(3), obj.boreholeFooter(3)], 'r-')
         end
         
         function createWorkPlaneStructure(obj, workPlane, radiuses)
@@ -111,32 +155,30 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates the borehole heat exchanger structure.
             
-            boreholeCollar = obj.location + obj.offset * obj.axis;
-            
             workPlaneTag = sprintf('work_plane_cbhe_structure%d', obj.id);
             
             workPlane = geometry.create(workPlaneTag, 'WorkPlane');
             workPlane.label(sprintf('Work Plane for CBHE Structure %d', obj.id));
             
             workPlane.set('planetype', 'normalvector');
-            workPlane.set('normalcoord', to_cell_array(boreholeCollar));
-            workPlane.set('normalvector', to_cell_array(obj.axis));
+            workPlane.set('normalcoord', to_cell_array(obj.boreholeCollar));
+            workPlane.set('normalvector', to_cell_array(obj.boreholeAxis));
             
             workPlane.set('unite', true);
             
-            obj.createWorkPlaneStructure(workPlane, [obj.bufferRadius, obj.radius, obj.coaxialPipe.outerWallRadius, obj.coaxialPipe.innerWallRadius]);
+            obj.createWorkPlaneStructure(workPlane, [obj.bufferRadius, obj.boreholeRadius, obj.coaxialPipe.outerWallRadius, obj.coaxialPipe.innerWallRadius]);
             
             extrusionTag = sprintf('extrusion_cbhe_structure%d', obj.id);
             
             extrusion = geometry.create(extrusionTag, 'Extrude');
             extrusion.label(sprintf('Extrusion for CBHE Structure Work Plane %d', obj.id));
             
-            extrusion.setIndex('distance', obj.length, 0);
+            extrusion.setIndex('distance', obj.boreholeLength, 0);
             extrusion.selection('input').set(workPlaneTag);
             
             % Creates the upper cylinder above the borehole heat exchanger.
             
-            bufferCollar = obj.location + (obj.offset - obj.bufferRadius) * obj.axis;
+            bufferCollar = obj.boreholeCollar - obj.bufferRadius * obj.boreholeAxis;
             
             workPlaneTag = sprintf('work_plane_upper_cylinder%d', obj.id);
             
@@ -145,7 +187,7 @@ classdef CoaxialBoreholeHeatExchanger
             
             workPlane.set('planetype', 'normalvector');
             workPlane.set('normalcoord', to_cell_array(bufferCollar));
-            workPlane.set('normalvector', to_cell_array(obj.axis));
+            workPlane.set('normalvector', to_cell_array(obj.boreholeAxis));
             
             workPlane.set('unite', true);
             
@@ -161,16 +203,14 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates the lower cylinder below the borehole heat exchanger.
             
-            boreholeFooter = obj.location + (obj.offset + obj.length) * obj.axis;
-            
             workPlaneTag = sprintf('work_plane_lower_cylinder%d', obj.id);
             
             workPlane = geometry.create(workPlaneTag, 'WorkPlane');
             workPlane.label(sprintf('Work Plane for Lower Cylinder %d', obj.id));
             
             workPlane.set('planetype', 'normalvector');
-            workPlane.set('normalcoord', to_cell_array(boreholeFooter));
-            workPlane.set('normalvector', to_cell_array(obj.axis));
+            workPlane.set('normalcoord', to_cell_array(obj.boreholeFooter));
+            workPlane.set('normalvector', to_cell_array(obj.boreholeAxis));
             
             workPlane.set('unite', true);
             
@@ -190,37 +230,32 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the buffer zone domain.
             
-            boreholeCollar = obj.location + obj.offset * obj.axis;
-            
             bufferZoneSelectionTag = sprintf('buffer_zone_selection%d', obj.id);
             
             bufferZoneSelection = geometry.create(bufferZoneSelectionTag, 'CylinderSelection');
             bufferZoneSelection.label(sprintf('Buffer Zone Selection %d', obj.id));
             
             bufferZoneSelection.set('r', obj.bufferRadius+0.001);
-            bufferZoneSelection.set('rin', obj.radius-0.001);
-            bufferZoneSelection.set('top', obj.length+0.001);
+            bufferZoneSelection.set('rin', obj.boreholeRadius-0.001);
+            bufferZoneSelection.set('top', obj.boreholeLength+0.001);
             bufferZoneSelection.set('bottom', -0.001);
-            bufferZoneSelection.set('pos', to_cell_array(boreholeCollar));
-            bufferZoneSelection.set('axis', to_cell_array(obj.axis));
+            bufferZoneSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            bufferZoneSelection.set('axis', to_cell_array(obj.boreholeAxis));
             bufferZoneSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the outer fluid domain.
-            
-            boreholeFooter = obj.location + (obj.offset + obj.length) * obj.axis;
-            bufferCollar = obj.location + (obj.offset - obj.bufferRadius) * obj.axis;
             
             outerFluidSelectionTag = sprintf('outer_fluid_selection%d', obj.id);
             
             outerFluidSelection = geometry.create(outerFluidSelectionTag, 'CylinderSelection');
             outerFluidSelection.label(sprintf('Outer Fluid Selection %d', obj.id));
             
-            outerFluidSelection.set('r', obj.radius+0.001);
+            outerFluidSelection.set('r', obj.boreholeRadius+0.001);
             outerFluidSelection.set('rin', obj.coaxialPipe.outerWallRadius-0.001);
-            outerFluidSelection.set('top', obj.length+0.001);
+            outerFluidSelection.set('top', obj.boreholeLength+0.001);
             outerFluidSelection.set('bottom', -0.001);
-            outerFluidSelection.set('pos', to_cell_array(boreholeCollar));
-            outerFluidSelection.set('axis', to_cell_array(obj.axis));
+            outerFluidSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            outerFluidSelection.set('axis', to_cell_array(obj.boreholeAxis));
             outerFluidSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the pipe wall domain.
@@ -233,10 +268,10 @@ classdef CoaxialBoreholeHeatExchanger
             pipeWallSelection.set('r', obj.coaxialPipe.outerWallRadius+0.001);
             %pipeWallSelection.set('rin', obj.inner_pipe_radius-0.001);
             pipeWallSelection.set('rin', +0.001); %%% HACK %%%
-            pipeWallSelection.set('top', obj.length+0.001);
+            pipeWallSelection.set('top', obj.boreholeLength+0.001);
             pipeWallSelection.set('bottom', -0.001);
-            pipeWallSelection.set('pos', to_cell_array(boreholeCollar));
-            pipeWallSelection.set('axis', to_cell_array(obj.axis));
+            pipeWallSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            pipeWallSelection.set('axis', to_cell_array(obj.boreholeAxis));
             %pipeWallSelection.set('condition', 'allvertices');
             pipeWallSelection.set('condition', 'inside'); %%% HACK %%%
             
@@ -249,10 +284,10 @@ classdef CoaxialBoreholeHeatExchanger
             
             innerFluidSelection.set('r', obj.coaxialPipe.innerWallRadius+0.001);
             innerFluidSelection.set('rin', '0');
-            innerFluidSelection.set('top', obj.length+0.001);
+            innerFluidSelection.set('top', obj.boreholeLength+0.001);
             innerFluidSelection.set('bottom', -0.001);
-            innerFluidSelection.set('pos', to_cell_array(boreholeCollar));
-            innerFluidSelection.set('axis', to_cell_array(obj.axis));
+            innerFluidSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            innerFluidSelection.set('axis', to_cell_array(obj.boreholeAxis));
             innerFluidSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the parts of the borehole structure.
@@ -271,15 +306,17 @@ classdef CoaxialBoreholeHeatExchanger
             boreholeWallSelection.label(sprintf('Borehole Wall Selection %d', obj.id));
             
             boreholeWallSelection.set('entitydim', 2);
-            boreholeWallSelection.set('r', obj.radius+0.001);
-            boreholeWallSelection.set('rin', obj.radius-0.001);
-            boreholeWallSelection.set('top', obj.length+0.001);
+            boreholeWallSelection.set('r', obj.boreholeRadius+0.001);
+            boreholeWallSelection.set('rin', obj.boreholeRadius-0.001);
+            boreholeWallSelection.set('top', obj.boreholeLength+0.001);
             boreholeWallSelection.set('bottom', -0.001);
-            boreholeWallSelection.set('pos', to_cell_array(boreholeCollar));
-            boreholeWallSelection.set('axis', to_cell_array(obj.axis));
+            boreholeWallSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            boreholeWallSelection.set('axis', to_cell_array(obj.boreholeAxis));
             boreholeWallSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the upper cylinder domain.
+            
+            bufferCollar = obj.boreholeCollar - obj.bufferRadius * obj.boreholeAxis;
             
             upperCylinderSelectionTag = sprintf('upper_cylinder_selection%d', obj.id);
             
@@ -291,7 +328,7 @@ classdef CoaxialBoreholeHeatExchanger
             upperCylinderSelection.set('top', obj.bufferRadius+0.001);
             upperCylinderSelection.set('bottom', -0.001);
             upperCylinderSelection.set('pos', to_cell_array(bufferCollar));
-            upperCylinderSelection.set('axis', to_cell_array(obj.axis));
+            upperCylinderSelection.set('axis', to_cell_array(obj.boreholeAxis));
             upperCylinderSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the lower cylinder domain.
@@ -305,8 +342,8 @@ classdef CoaxialBoreholeHeatExchanger
             lowerCylinderSelection.set('rin', '0');
             lowerCylinderSelection.set('top', obj.bufferRadius+0.001);
             lowerCylinderSelection.set('bottom', -0.001);
-            lowerCylinderSelection.set('pos', to_cell_array(boreholeFooter));
-            lowerCylinderSelection.set('axis', to_cell_array(obj.axis));
+            lowerCylinderSelection.set('pos', to_cell_array(obj.boreholeFooter));
+            lowerCylinderSelection.set('axis', to_cell_array(obj.boreholeAxis));
             lowerCylinderSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the upper and lower cylinders.
@@ -326,11 +363,11 @@ classdef CoaxialBoreholeHeatExchanger
             
             outerCapSelection.set('entitydim', 2);
             outerCapSelection.set('r', obj.bufferRadius+0.001);
-            outerCapSelection.set('rin', obj.radius-0.001);
+            outerCapSelection.set('rin', obj.boreholeRadius-0.001);
             outerCapSelection.set('top', +0.001);
             outerCapSelection.set('bottom', -0.001);
-            outerCapSelection.set('pos', to_cell_array(boreholeCollar));
-            outerCapSelection.set('axis', to_cell_array(obj.axis));
+            outerCapSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            outerCapSelection.set('axis', to_cell_array(obj.boreholeAxis));
             %outerCapSelection.set('condition', 'allvertices');
             outerCapSelection.set('condition', 'inside'); %%% HACK %%%
             
@@ -342,12 +379,12 @@ classdef CoaxialBoreholeHeatExchanger
             innerCapSelection.label(sprintf('Inner Cap Selection %d', obj.id));
             
             innerCapSelection.set('entitydim', 2);
-            innerCapSelection.set('r', obj.radius+0.001);
+            innerCapSelection.set('r', obj.boreholeRadius+0.001);
             innerCapSelection.set('rin', 0);
             innerCapSelection.set('top', +0.001);
             innerCapSelection.set('bottom', -0.001);
-            innerCapSelection.set('pos', to_cell_array(boreholeCollar));
-            innerCapSelection.set('axis', to_cell_array(obj.axis));
+            innerCapSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            innerCapSelection.set('axis', to_cell_array(obj.boreholeAxis));
             innerCapSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the top inlet boundary.
@@ -358,12 +395,12 @@ classdef CoaxialBoreholeHeatExchanger
             topInletSelection.label(sprintf('Top Inlet Selection %d', obj.id));
             
             topInletSelection.set('entitydim', 2);
-            topInletSelection.set('r', obj.radius+0.001);
+            topInletSelection.set('r', obj.boreholeRadius+0.001);
             topInletSelection.set('rin', obj.coaxialPipe.outerWallRadius-0.001);
             topInletSelection.set('top', +0.001);
             topInletSelection.set('bottom', -0.001);
-            topInletSelection.set('pos', to_cell_array(boreholeCollar));
-            topInletSelection.set('axis', to_cell_array(obj.axis));
+            topInletSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            topInletSelection.set('axis', to_cell_array(obj.boreholeAxis));
             topInletSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the top outlet boundary.
@@ -378,8 +415,8 @@ classdef CoaxialBoreholeHeatExchanger
             topOutletSelection.set('rin', '0');
             topOutletSelection.set('top', +0.001);
             topOutletSelection.set('bottom', -0.001);
-            topOutletSelection.set('pos', to_cell_array(boreholeCollar));
-            topOutletSelection.set('axis', to_cell_array(obj.axis));
+            topOutletSelection.set('pos', to_cell_array(obj.boreholeCollar));
+            topOutletSelection.set('axis', to_cell_array(obj.boreholeAxis));
             topOutletSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the bottom outlet boundary.
@@ -394,8 +431,8 @@ classdef CoaxialBoreholeHeatExchanger
             bottomOutletSelection.set('rin', obj.coaxialPipe.outerWallRadius-0.001);
             bottomOutletSelection.set('top', +0.001);
             bottomOutletSelection.set('bottom', -0.001);
-            bottomOutletSelection.set('pos', to_cell_array(boreholeFooter));
-            bottomOutletSelection.set('axis', to_cell_array(obj.axis));
+            bottomOutletSelection.set('pos', to_cell_array(obj.boreholeFooter));
+            bottomOutletSelection.set('axis', to_cell_array(obj.boreholeAxis));
             bottomOutletSelection.set('condition', 'allvertices');
             
             % Creates a selection containing the bottom inlet boundary.
@@ -410,8 +447,8 @@ classdef CoaxialBoreholeHeatExchanger
             bottomIntletSelection.set('rin', '0');
             bottomIntletSelection.set('top', +0.001);
             bottomIntletSelection.set('bottom', -0.001);
-            bottomIntletSelection.set('pos', to_cell_array(boreholeFooter));
-            bottomIntletSelection.set('axis', to_cell_array(obj.axis));
+            bottomIntletSelection.set('pos', to_cell_array(obj.boreholeFooter));
+            bottomIntletSelection.set('axis', to_cell_array(obj.boreholeAxis));
             bottomIntletSelection.set('condition', 'allvertices');
             
         end

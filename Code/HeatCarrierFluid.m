@@ -8,6 +8,8 @@ classdef HeatCarrierFluid
         DYNAMIC_VISCOSITY_COEFFOCIENTS = [1.47439832e+00 -4.74457689e-02 4.31422587e-04 -3.02278830e-06 1.56522183e-02 -4.10634142e-05 -5.13476074e-06 7.00405865e-08 -8.43523165e-04 1.64018694e-05 -1.09093764e-07 -1.96722915e-09 7.55226351e-06 -1.11756101e-07 1.89892686e-09 1.52855850e-07 -9.48109784e-10 -4.12963938e-09]
         MEAN_ETHANOL_CONCENTRATION = 29.23611111111111
         MEAN_FLUID_TEMPERATURE = 8.157777777777776
+        DATA_POLYGON_ETHANOL_CONCENTRATION = [0, 0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 60, 0];
+        DATA_POLYGON_FLUID_TEMPERATURE = [40, 0, -2.09, -4.47, -7.36, -10.9, -15.45, -20.47, -29.3, -37.7, -44.9, 40, 40];
     end
     
     properties
@@ -18,6 +20,14 @@ classdef HeatCarrierFluid
     methods
         
         function obj = HeatCarrierFluid(ethanolConcentration, fluidTemperature, flowRate)
+            
+            if ~inpolygon(ethanolConcentration, fluidTemperature, DATA_POLYGON_ETHANOL_CONCENTRATION, DATA_POLYGON_FLUID_TEMPERATURE)
+                error('Invalid ethanol concentration and fluid temperature.');
+            end
+            
+            if flowRate <= 0
+                error('Flow rate must be positive.');
+            end
             
             obj.ethanolConcentration = ethanolConcentration;
             obj.fluidTemperature = fluidTemperature;

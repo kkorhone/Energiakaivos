@@ -1,4 +1,6 @@
-function make_tensor_model(cbhe)
+function make_tensor_model(bhe)
+
+fprintf(1, 'make_tensor_model: Creating model... ');
 
 import com.comsol.model.*
 import com.comsol.model.util.*
@@ -21,7 +23,7 @@ model.component('comp1').geom('geom1').feature('dif1').selection('input2').set({
 model.component('comp1').geom('geom1').create('ls1', 'LineSegment');
 model.component('comp1').geom('geom1').feature('ls1').set('specify1', 'coord');
 model.component('comp1').geom('geom1').feature('ls1').set('specify2', 'coord');
-model.component('comp1').geom('geom1').feature('ls1').set('coord2', 10*cbhe.axis);
+model.component('comp1').geom('geom1').feature('ls1').set('coord2', 10*bhe.boreholeAxis);
 
 model.component('comp1').geom('geom1').run();
 
@@ -37,7 +39,7 @@ model.component('comp1').physics('ht').feature('temp2').selection.set([1 2 3 4 9
 model.component('comp1').physics('ht').feature('temp2').set('T0', '10[degC]');
 
 model.component('comp1').physics('ht').feature('solid1').set('k_mat', 'userdef');
-model.component('comp1').physics('ht').feature('solid1').set('k', reshape(to_cell_array(cbhe.thermalConductivityTensor), 1, []));
+model.component('comp1').physics('ht').feature('solid1').set('k', reshape(to_cell_array(bhe.thermalConductivityTensor), 1, []));
 model.component('comp1').physics('ht').feature('solid1').set('rho_mat', 'userdef');
 model.component('comp1').physics('ht').feature('solid1').set('rho', '1000[kg/m^3]');
 model.component('comp1').physics('ht').feature('solid1').set('Cp_mat', 'userdef');
@@ -92,7 +94,13 @@ model.sol('sol1').feature('s1').feature('i2').label('GMG, Heat Transfer Variable
 model.sol('sol1').feature('s1').feature('i2').set('rhob', 20);
 model.sol('sol1').feature('s1').feature('i2').feature('mg1').feature('cs').feature('d1').set('linsolver', 'pardiso');
 
+fprintf(1, 'Done.\n');
+fprintf(1, 'make_tensor_model: Solving model... ');
+
 model.sol('sol1').runAll();
+
+fprintf(1, 'Done.\n');
+fprintf(1, 'make_tensor_model: Exporting image... ');
 
 model.component('comp1').view('view1').camera.set('projection', 'orthographic');
 model.component('comp1').view('view1').camera.set('orthoscale', 39.81048583984375);
@@ -147,4 +155,9 @@ model.result.export('img1').set('sourceobject', 'pg1');
 model.result.export('img1').set('pngfilename', 'E:\\Work\\Energiakaivos\\Code\\tensor.png');
 model.result.export('img1').run();
 
+fprintf(1, 'Done.\n');
+fprintf(1, 'make_tensor_model: Saving model... ');
+
 mphsave(model, 'tensor.mph');
+
+fprintf(1, 'Done.\n');

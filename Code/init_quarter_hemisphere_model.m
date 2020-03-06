@@ -22,125 +22,34 @@ coaxial_pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
 % =========================================================================
 
 % -------------------------------------------------------------------------
-% Reads the position vectors of the BHE end points.
+% Reads the BHE field configuration.
 % -------------------------------------------------------------------------
 
-config = load(file_name);
+field_config = load(file_name);
 
-num_boreholes = size(config, 1);
+%i = [10, 20]; bhe_config = bhe_config[i, :];
 
-x = config(:, 1);
-y = config(:, 2);
-z = config(:, 3);
-
-%i = [10, 20]; x = x(i); y = y(i); z = z(i);
-
-% -------------------------------------------------------------------------
-% Normalizes the position vectors of the BHE end points.
-% -------------------------------------------------------------------------
-
-r = sqrt(x.^2 + y.^2 + z.^2);
-
-x = x ./ r;
-y = y ./ r;
-z = z ./ r;
-
-% -------------------------------------------------------------------------
-% Plots the normalized position vectors of the BHE end points.
-% -------------------------------------------------------------------------
-
-close all
-
-for i = 1:length(x)
-    plot3([0 x(i)], [0 y(i)], [0 z(i)], 'r-')
-    if i == 1
-        hold on
-    end
-end
-plot3(0, 0, 0, 'ko')
-
-% -------------------------------------------------------------------------
-% Calculates the azimuth and tilt angles of the BHEs.
-% -------------------------------------------------------------------------
-
-% theta = acos(z ./ r);
-theta = acos(z ./ r);
-phi = atan2(y, x);
-
-tilt = 90 - 180 * theta / pi;
-azim = 180 * phi / pi;
-
-i = [];
-
-for j = 1:length(tilt)
-    if (abs(azim(j)) < 1e-6) || (abs(azim(j)-90) < 1e-6)
-        i = [i j];
-    elseif 0 <= azim(j) && azim(j) <= 90
-        i = [i j];
-    end
-end
-
-tilt = tilt(i);
-azim = azim(i);
-
-% -------------------------------------------------------------------------
-% Plots the end points of the BHEs.
-% -------------------------------------------------------------------------
-
-for i = 1:length(tilt)
-    x = sin(pi/2-tilt(i)*pi/180)*cos(azim(i)*pi/180);
-    y = sin(pi/2-tilt(i)*pi/180)*sin(azim(i)*pi/180);
-    z = cos(pi/2-tilt(i)*pi/180);
-    plot3(x, y, z, 'bo')
-end
-
-x = [-1 -1 -1 -1 +1 +1 +1 +1];
-y = [-1 -1 +1 +1 -1 -1 +1 +1];
-z = [-1 +0 -1 +0 -1 +0 -1 +0];
-
-plot3([-1 +1 +1 -1 -1], [-1 -1 +1 +1 -1], [0 0 0 0 0], 'k:')
-plot3([-1 +1 +1 -1 -1], [-1 -1 +1 +1 -1], [-1 -1 -1 -1 -1], 'k:')
-
-plot3([-1 -1], [-1 -1], [-1 0], 'k:')
-plot3([-1 -1], [+1 +1], [-1 0], 'k:')
-plot3([+1 +1], [-1 -1], [-1 0], 'k:')
-plot3([+1 +1], [+1 +1], [-1 0], 'k:')
-
-grid on
-hold off
-title(sprintf('%d BHEs (%s)', length(tilt), file_name))
-
-pause(1)
+bhe_collars = field_config(:, 1:3);
+bhe_footers = field_config(:, 4:6);
+bhe_factors = field_config(:, 7);
 
 % -------------------------------------------------------------------------
 % Constructs the BHEs.
 % -------------------------------------------------------------------------
 
-bhe_factors = [];
 bhe_array = {};
 
-for i = 1:length(tilt)
-    if abs(tilt(i) + 90) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
-        fprintf(1, 'Vertical BHE\n');
-        bhe_factors(end+1) = 1;
-    elseif abs(azim(i)) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane});
-        fprintf(1, 'X Axis BHE\n');
-        bhe_factors(end+1) = 2;
-    elseif abs(azim(i) - 90) < 1e-6
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Positive_XZ_Plane});
-        fprintf(1, 'Y Axis BHE\n');
-        bhe_factors(end+1) = 2;
-    else
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger([0 0 -tunnel_depth], tilt(i), azim(i), borehole_diameter, borehole_length, tunnel_radius, buffer_radius, working_fluid, coaxial_pipe);
-        fprintf(1, 'Quadrant BHE\n');
-        bhe_factors(end+1) = 4;
-    end
+for i = 1:length(bhe_factors)
+    bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), bhe_diameter, buffer_radius, working_fluid, coaxial_pipe, {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+    fprintf(1, 'bhe_factor=%d\n', bhe_factors(i));
 end
 
 fprintf(1, 'sum(bhe_factors)=%d length(bhe_array)=%d\n', sum(bhe_factors), length(bhe_array));
 
+plot_bhe_field(bhe_array)
+
+pause(1)
+return
 % =========================================================================
 % Creates a new model.
 % =========================================================================
