@@ -27,11 +27,10 @@ flow_rate = 0.0006;
 
 field_config = load(file_name);
 
-%i = [10, 20]; bhe_config = bhe_config[i, :];
-
 bhe_collars = field_config(:, 1:3);
 bhe_footers = field_config(:, 4:6);
 bhe_factors = field_config(:, 7);
+cut_planes = field_config(:, 8);
 
 % -------------------------------------------------------------------------
 % Constructs the BHEs.
@@ -40,7 +39,17 @@ bhe_factors = field_config(:, 7);
 bhe_array = {};
 
 for i = 1:length(bhe_factors)
-    bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+    if cut_planes(i) == 101
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
+    elseif cut_planes(i) == 102
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane});
+    elseif cut_planes(i) == 103
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Positive_XZ_Plane});
+    elseif cut_planes(i) == 104
+        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius);
+    else
+        error('Invalid cut plane code.');
+    end
     fprintf(1, 'bhe_factor=%d\n', bhe_factors(i));
 end
 
@@ -138,6 +147,7 @@ end
 % bedrock_cylinder.set('pos', [0 0 -model_height]);
 
 bedrock_work_plane = geom.create('bedrock_work_plane', 'WorkPlane');
+bedrock_work_plane.label('Bedrock Work Plane');
 bedrock_work_plane.set('unite', true);
 bedrock_work_plane.set('quickz', -model_height);
 
@@ -146,6 +156,7 @@ bedrock_circle.set('r', model_radius);
 bedrock_circle.set('angle', 90);
 
 bedrock_extrude = geom.feature.create('bedrock_extrude', 'Extrude');
+bedrock_extrude.label('Bedrock Extrusion');
 bedrock_extrude.set('workplane', bedrock_work_plane.tag);
 bedrock_extrude.selection('input').set({char(bedrock_work_plane.tag)});
 bedrock_extrude.setIndex('distance', model_height, 0);

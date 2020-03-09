@@ -74,7 +74,7 @@ classdef CoaxialBoreholeHeatExchanger
             end
             
             % Handles variable arguments in.
-
+            
             obj.mirrorPlanes = [];
             obj.bufferRadius = 1.0;
             
@@ -98,16 +98,16 @@ classdef CoaxialBoreholeHeatExchanger
             
             theta = acos(obj.boreholeAxis(3));
             phi = atan2(obj.boreholeAxis(2), obj.boreholeAxis(1));
-
+            
             % Constructs rotation matrix.
-
+            
             boreholeTilt = 90 - 180 * theta / pi;
             boreholeAzimuth = 180 * phi / pi;
             
             if boreholeAzimuth < 0
                 boreholeAzimuth = boreholeAzimuth + 360;
             end
-
+            
             theta = pi * boreholeTilt / 180;
             phi = pi * boreholeAzimuth / 180;
             
@@ -128,7 +128,7 @@ classdef CoaxialBoreholeHeatExchanger
             obj.innerFluidVelocity = obj.flowRate / innerFluidArea * -obj.boreholeAxis;
             
             fprintf(1, 'CoaxialBoreholeHeatExchanger(id=%d tilt=%.1f azimuth=%.1f length=%.1f Q=%.3f)\n', obj.id, boreholeTilt, boreholeAzimuth, obj.boreholeLength, obj.flowRate*1000);
-
+            
         end
         
         function plot(obj)
@@ -162,13 +162,13 @@ classdef CoaxialBoreholeHeatExchanger
             
         end
         
-        function createGeometry(obj, geometry)
+        function tags = createGeometry(obj, geometry)
             
             % Creates the borehole heat exchanger structure.
             
-            workPlaneTag = sprintf('work_plane_cbhe_structure%d', obj.id);
+            tags{1} = sprintf('work_plane_cbhe_structure%d', obj.id);
             
-            workPlane = geometry.create(workPlaneTag, 'WorkPlane');
+            workPlane = geometry.create(tags{1}, 'WorkPlane');
             workPlane.label(sprintf('Work Plane for CBHE Structure %d', obj.id));
             
             workPlane.set('planetype', 'normalvector');
@@ -179,21 +179,21 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.createWorkPlaneStructure(workPlane, [obj.bufferRadius, obj.boreholeRadius, obj.coaxialPipe.outerWallRadius, obj.coaxialPipe.innerWallRadius]);
             
-            extrusionTag = sprintf('extrusion_cbhe_structure%d', obj.id);
+            tags{2} = sprintf('extrusion_cbhe_structure%d', obj.id);
             
-            extrusion = geometry.create(extrusionTag, 'Extrude');
+            extrusion = geometry.create(tags{2}, 'Extrude');
             extrusion.label(sprintf('Extrusion for CBHE Structure Work Plane %d', obj.id));
             
             extrusion.setIndex('distance', obj.boreholeLength, 0);
-            extrusion.selection('input').set(workPlaneTag);
+            extrusion.selection('input').set(tags{1});
             
             % Creates the upper cylinder above the borehole heat exchanger.
             
             bufferCollar = obj.boreholeCollar - obj.bufferRadius * obj.boreholeAxis;
             
-            workPlaneTag = sprintf('work_plane_upper_cylinder%d', obj.id);
+            tags{3} = sprintf('work_plane_upper_cylinder%d', obj.id);
             
-            workPlane = geometry.create(workPlaneTag, 'WorkPlane');
+            workPlane = geometry.create(tags{3}, 'WorkPlane');
             workPlane.label(sprintf('Work Plane for Upper Cylinder %d', obj.id));
             
             workPlane.set('planetype', 'normalvector');
@@ -204,19 +204,19 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.createWorkPlaneStructure(workPlane, obj.bufferRadius);
             
-            extrusionTag = sprintf('extrusion_upper_cylinder%d', obj.id);
+            tags{4} = sprintf('extrusion_upper_cylinder%d', obj.id);
             
-            extrusion = geometry.create(extrusionTag, 'Extrude');
+            extrusion = geometry.create(tags{4}, 'Extrude');
             extrusion.label(sprintf('Extrusion for Upper Cylinder Work Plane %d', obj.id));
             
             extrusion.setIndex('distance', obj.bufferRadius, 0);
-            extrusion.selection('input').set(workPlaneTag);
+            extrusion.selection('input').set(tags{3});
             
             % Creates the lower cylinder below the borehole heat exchanger.
             
-            workPlaneTag = sprintf('work_plane_lower_cylinder%d', obj.id);
+            tags{5} = sprintf('work_plane_lower_cylinder%d', obj.id);
             
-            workPlane = geometry.create(workPlaneTag, 'WorkPlane');
+            workPlane = geometry.create(tags{5}, 'WorkPlane');
             workPlane.label(sprintf('Work Plane for Lower Cylinder %d', obj.id));
             
             workPlane.set('planetype', 'normalvector');
@@ -227,23 +227,23 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.createWorkPlaneStructure(workPlane, obj.bufferRadius);
             
-            extrusionTag = sprintf('extrusion_lower_cylinder%d', obj.id);
+            tags{6} = sprintf('extrusion_lower_cylinder%d', obj.id);
             
-            extrusion = geometry.create(extrusionTag, 'Extrude');
+            extrusion = geometry.create(tags{6}, 'Extrude');
             extrusion.label(sprintf('Extrusion for Lower Cylinder Work Plane %d', obj.id));
             
             extrusion.setIndex('distance', obj.bufferRadius, 0);
-            extrusion.selection('input').set(workPlaneTag);
+            extrusion.selection('input').set(tags{5});
             
         end
         
-        function createSelections(obj, geometry)
+        function tags = createSelections(obj, geometry)
             
             % Creates a selection containing the buffer zone domain.
             
-            bufferZoneSelectionTag = sprintf('buffer_zone_selection%d', obj.id);
+            tags{1} = sprintf('buffer_zone_selection%d', obj.id);
             
-            bufferZoneSelection = geometry.create(bufferZoneSelectionTag, 'CylinderSelection');
+            bufferZoneSelection = geometry.create(tags{1}, 'CylinderSelection');
             bufferZoneSelection.label(sprintf('Buffer Zone Selection %d', obj.id));
             
             bufferZoneSelection.set('r', obj.bufferRadius+0.001);
@@ -256,9 +256,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the outer fluid domain.
             
-            outerFluidSelectionTag = sprintf('outer_fluid_selection%d', obj.id);
+            tags{2} = sprintf('outer_fluid_selection%d', obj.id);
             
-            outerFluidSelection = geometry.create(outerFluidSelectionTag, 'CylinderSelection');
+            outerFluidSelection = geometry.create(tags{2}, 'CylinderSelection');
             outerFluidSelection.label(sprintf('Outer Fluid Selection %d', obj.id));
             
             outerFluidSelection.set('r', obj.boreholeRadius+0.001);
@@ -271,9 +271,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the pipe wall domain.
             
-            pipeWallSelectionTag = sprintf('pipe_wall_selection%d', obj.id);
+            tags{3} = sprintf('pipe_wall_selection%d', obj.id);
             
-            pipeWallSelection = geometry.create(pipeWallSelectionTag, 'CylinderSelection');
+            pipeWallSelection = geometry.create(tags{3}, 'CylinderSelection');
             pipeWallSelection.label(sprintf('Pipe Wall Selection %d', obj.id));
             
             pipeWallSelection.set('r', obj.coaxialPipe.outerWallRadius+0.001);
@@ -288,9 +288,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the inner fluid domain.
             
-            innerFluidSelectionTag = sprintf('inner_fluid_selection%d', obj.id);
+            tags{4} = sprintf('inner_fluid_selection%d', obj.id);
             
-            innerFluidSelection = geometry.create(innerFluidSelectionTag, 'CylinderSelection');
+            innerFluidSelection = geometry.create(tags{4}, 'CylinderSelection');
             innerFluidSelection.label(sprintf('Inner Fluid Selection %d', obj.id));
             
             innerFluidSelection.set('r', obj.coaxialPipe.innerWallRadius+0.001);
@@ -307,13 +307,13 @@ classdef CoaxialBoreholeHeatExchanger
             
             boreholeStructureSelection = geometry.create(boreholeStructureSelectionTag, 'UnionSelection');
             boreholeStructureSelection.label(sprintf('Borehole Structure Selection %d', obj.id));
-            boreholeStructureSelection.set('input', {bufferZoneSelectionTag outerFluidSelectionTag pipeWallSelectionTag innerFluidSelectionTag});
+            boreholeStructureSelection.set('input', {tags{1}, tags{2}, tags{3}, tags{4}});
             
             % Creates a selection containing the borehole wall boundary.
             
-            boreholeWallSelectionTag = sprintf('borehole_wall_selection%d', obj.id);
+            tags{5} = sprintf('borehole_wall_selection%d', obj.id);
             
-            boreholeWallSelection = geometry.create(boreholeWallSelectionTag, 'CylinderSelection');
+            boreholeWallSelection = geometry.create(tags{5}, 'CylinderSelection');
             boreholeWallSelection.label(sprintf('Borehole Wall Selection %d', obj.id));
             
             boreholeWallSelection.set('entitydim', 2);
@@ -329,9 +329,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             bufferCollar = obj.boreholeCollar - obj.bufferRadius * obj.boreholeAxis;
             
-            upperCylinderSelectionTag = sprintf('upper_cylinder_selection%d', obj.id);
+            tags{6} = sprintf('upper_cylinder_selection%d', obj.id);
             
-            upperCylinderSelection = geometry.create(upperCylinderSelectionTag, 'CylinderSelection');
+            upperCylinderSelection = geometry.create(tags{6}, 'CylinderSelection');
             upperCylinderSelection.label(sprintf('Upper Cylinder Selection %d', obj.id));
             
             upperCylinderSelection.set('r', obj.bufferRadius+0.001);
@@ -344,9 +344,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the lower cylinder domain.
             
-            lowerCylinderSelectionTag = sprintf('lower_cylinder_selection%d', obj.id);
+            tags{7} = sprintf('lower_cylinder_selection%d', obj.id);
             
-            lowerCylinderSelection = geometry.create(lowerCylinderSelectionTag, 'CylinderSelection');
+            lowerCylinderSelection = geometry.create(tags{7}, 'CylinderSelection');
             lowerCylinderSelection.label(sprintf('Lower Cylinder Selection %d', obj.id));
             
             lowerCylinderSelection.set('r', obj.bufferRadius+0.001);
@@ -363,13 +363,13 @@ classdef CoaxialBoreholeHeatExchanger
             
             cylindersSelection = geometry.create(cylindersSelectionTag, 'UnionSelection');
             cylindersSelection.label(sprintf('Cylinders Selection %d', obj.id));
-            cylindersSelection.set('input', {upperCylinderSelectionTag lowerCylinderSelectionTag});
+            cylindersSelection.set('input', {tags{6}, tags{7}});
             
             % Creates a selection containing the outer cap boundary.
             
-            outerCapSelectionTag = sprintf('outer_cap_selection%d', obj.id);
+            tags{8} = sprintf('outer_cap_selection%d', obj.id);
             
-            outerCapSelection = geometry.create(outerCapSelectionTag, 'CylinderSelection');
+            outerCapSelection = geometry.create(tags{8}, 'CylinderSelection');
             outerCapSelection.label(sprintf('Outer Cap Selection %d', obj.id));
             
             outerCapSelection.set('entitydim', 2);
@@ -384,9 +384,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the inner cap boundary.
             
-            innerCapSelectionTag = sprintf('inner_cap_selection%d', obj.id);
+            tags{9} = sprintf('inner_cap_selection%d', obj.id);
             
-            innerCapSelection = geometry.create(innerCapSelectionTag, 'CylinderSelection');
+            innerCapSelection = geometry.create(tags{9}, 'CylinderSelection');
             innerCapSelection.label(sprintf('Inner Cap Selection %d', obj.id));
             
             innerCapSelection.set('entitydim', 2);
@@ -400,9 +400,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the top inlet boundary.
             
-            topInletSelectionTag = sprintf('top_inlet_selection%d', obj.id);
+            tags{10} = sprintf('top_inlet_selection%d', obj.id);
             
-            topInletSelection = geometry.create(topInletSelectionTag, 'CylinderSelection');
+            topInletSelection = geometry.create(tags{10}, 'CylinderSelection');
             topInletSelection.label(sprintf('Top Inlet Selection %d', obj.id));
             
             topInletSelection.set('entitydim', 2);
@@ -416,9 +416,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the top outlet boundary.
             
-            topOutletSelectionTag = sprintf('top_outlet_selection%d', obj.id);
+            tags{11} = sprintf('top_outlet_selection%d', obj.id);
             
-            topOutletSelection = geometry.create(topOutletSelectionTag, 'CylinderSelection');
+            topOutletSelection = geometry.create(tags{11}, 'CylinderSelection');
             topOutletSelection.label(sprintf('Top Outlet Selection %d', obj.id));
             
             topOutletSelection.set('entitydim', 2);
@@ -432,9 +432,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the bottom outlet boundary.
             
-            bottomOutletSelectionTag = sprintf('bottom_outlet_selection%d', obj.id);
+            tags{12} = sprintf('bottom_outlet_selection%d', obj.id);
             
-            bottomOutletSelection = geometry.create(bottomOutletSelectionTag, 'CylinderSelection');
+            bottomOutletSelection = geometry.create(tags{12}, 'CylinderSelection');
             bottomOutletSelection.label(sprintf('Bottom Outlet Selection %d', obj.id));
             
             bottomOutletSelection.set('entitydim', 2);
@@ -448,9 +448,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the bottom inlet boundary.
             
-            bottomIntletSelectionTag = sprintf('bottom_inlet_selection%d', obj.id);
+            tags{13} = sprintf('bottom_inlet_selection%d', obj.id);
             
-            bottomIntletSelection = geometry.create(bottomIntletSelectionTag, 'CylinderSelection');
+            bottomIntletSelection = geometry.create(tags{13}, 'CylinderSelection');
             bottomIntletSelection.label(sprintf('Bottom Inlet Selection %d', obj.id));
             
             bottomIntletSelection.set('entitydim', 2);
@@ -464,13 +464,13 @@ classdef CoaxialBoreholeHeatExchanger
             
         end
         
-        function createMesh(obj, geometry, mesh)
+        function tags = createMesh(obj, geometry, mesh)
             
             % Creates a mesh for the inner cap of the borehole structure.
             
-            innerCapMeshTag = sprintf('inner_cap_mesh%d', obj.id);
+            tags{1} = sprintf('inner_cap_mesh%d', obj.id);
             
-            innerCapMesh = mesh.create(innerCapMeshTag, 'FreeTri');
+            innerCapMesh = mesh.create(tags{1}, 'FreeTri');
             innerCapMesh.label(sprintf('Inner Cap Mesh %d', obj.id));
             
             innerCapMesh.selection.named(sprintf('%s_inner_cap_selection%d', geometry.tag, obj.id));
@@ -483,9 +483,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a mesh for the outer cap of the borehole structure.
             
-            outerCapMeshTag = sprintf('outer_cap_mesh%d', obj.id);
+            tags{2} = sprintf('outer_cap_mesh%d', obj.id);
             
-            outerCapMesh = mesh.create(outerCapMeshTag, 'FreeTri');
+            outerCapMesh = mesh.create(tags{2}, 'FreeTri');
             outerCapMesh.label(sprintf('Outer Cap Mesh %d', obj.id));
             
             outerCapMesh.selection.named(sprintf('%s_outer_cap_selection%d', geometry.tag, obj.id));
@@ -500,9 +500,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a swept mesh for the borehole structure.
             
-            sweptMeshTag = sprintf('swept_mesh%d', obj.id);
+            tags{3} = sprintf('swept_mesh%d', obj.id);
             
-            sweptMesh = mesh.create(sweptMeshTag, 'Sweep');
+            sweptMesh = mesh.create(tags{3}, 'Sweep');
             sweptMesh.label(sprintf('Swept Mesh %d', obj.id));
             
             sweptMesh.selection.geom(geometry.tag, 3);
@@ -517,9 +517,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates meshes for the upper and lower cylinders.
             
-            cylindersMeshTag = sprintf('cylinders_mesh%d', obj.id);
+            tags{4} = sprintf('cylinders_mesh%d', obj.id);
             
-            cylindersMesh = mesh.create(cylindersMeshTag, 'FreeTet');
+            cylindersMesh = mesh.create(tags{4}, 'FreeTet');
             cylindersMesh.label(sprintf('Cylinders Mesh %d', obj.id));
             
             cylindersMesh.selection.geom(geometry.tag, 3);
@@ -530,13 +530,13 @@ classdef CoaxialBoreholeHeatExchanger
             
         end
         
-        function createPhysics(obj, geometry, physics)
+        function tags = createPhysics(obj, geometry, physics)
             
             % Creates outer fluid physics.
             
-            tag = sprintf('outer_fluid_physics%d', obj.id);
+            tags{1} = sprintf('outer_fluid_physics%d', obj.id);
             
-            fluid = physics.create(tag, 'FluidHeatTransferModel', 3);
+            fluid = physics.create(tags{1}, 'FluidHeatTransferModel', 3);
             fluid.label(sprintf('Outer Fluid Physics %d', obj.id));
             
             fluid.selection.named(sprintf('%s_outer_fluid_selection%d', geometry.tag, obj.id));
@@ -552,9 +552,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates pipe wall physics.
             
-            tag = sprintf('pipe_wall_physics%d', obj.id);
+            tags{2} = sprintf('pipe_wall_physics%d', obj.id);
             
-            solid = physics.create(tag, 'SolidHeatTransferModel', 3);
+            solid = physics.create(tags{2}, 'SolidHeatTransferModel', 3);
             solid.label(sprintf('Pipe Wall Physics %d', obj.id));
             
             solid.selection.named(sprintf('%s_pipe_wall_selection%d', geometry.tag, obj.id));
@@ -567,9 +567,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates inner fluid physics.
             
-            tag = sprintf('inner_fluid_physics%d', obj.id);
+            tags{3} = sprintf('inner_fluid_physics%d', obj.id);
             
-            fluid = physics.create(tag, 'FluidHeatTransferModel', 3);
+            fluid = physics.create(tags{3}, 'FluidHeatTransferModel', 3);
             fluid.label(sprintf('Inner Fluid Physics %d', obj.id));
             
             fluid.selection.named(sprintf('%s_inner_fluid_selection%d', geometry.tag, obj.id));
@@ -585,13 +585,13 @@ classdef CoaxialBoreholeHeatExchanger
             
         end
         
-        function createBoundaryConditions(obj, geometry, physics, inlet_temperature)
+        function tags = createBoundaryConditions(obj, geometry, physics, inlet_temperature)
             
             % Creates top inlet temperature boundary condition.
             
-            tag = sprintf('top_inlet_temperature_bc%d', obj.id);
+            tags{1} = sprintf('top_inlet_temperature_bc%d', obj.id);
             
-            boundaryCondition = physics.create(tag, 'TemperatureBoundary', 2);
+            boundaryCondition = physics.create(tags{1}, 'TemperatureBoundary', 2);
             boundaryCondition.label(sprintf('Top Inlet Temperature BC %d', obj.id));
             
             boundaryCondition.selection.named(sprintf('%s_top_inlet_selection%d', geometry.tag, obj.id));
@@ -599,9 +599,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates bottom inlet temperature boundary condition.
             
-            tag = sprintf('bottom_inlet_temperature_bc%d', obj.id);
+            tags{2} = sprintf('bottom_inlet_temperature_bc%d', obj.id);
             
-            boundaryCondition= physics.create(tag, 'TemperatureBoundary', 2);
+            boundaryCondition= physics.create(tags{2}, 'TemperatureBoundary', 2);
             boundaryCondition.label(sprintf('Bottom Inlet Temperature BC %d', obj.id));
             
             boundaryCondition.selection.named(sprintf('%s_bottom_inlet_selection%d', geometry.tag, obj.id));
@@ -609,40 +609,40 @@ classdef CoaxialBoreholeHeatExchanger
             
         end
         
-        function createOperators(obj, component, geometry)
+        function tags = createOperators(obj, component, geometry)
             
             % Creates a wall integration operator.
             
-            tag = sprintf('borehole_wall_integration_operator%d', obj.id);
+            tags{1} = sprintf('borehole_wall_integration_operator%d', obj.id);
             
-            operator = component.cpl.create(tag, 'Integration');
+            operator = component.cpl.create(tags{1}, 'Integration');
             operator.label(sprintf('Borehole Wall Integration Operator %d', obj.id));
             operator.selection.geom(geometry.tag, 2);
             operator.selection.named(sprintf('%s_borehole_wall_selection%d', geometry.tag, obj.id));
             
             % Creates the top outlet average operator.
             
-            tag = sprintf('top_outlet_average_operator%d', obj.id);
+            tags{2} = sprintf('top_outlet_average_operator%d', obj.id);
             
-            operator = component.cpl.create(tag, 'Average');
+            operator = component.cpl.create(tags{2}, 'Average');
             operator.label(sprintf('Top Average Operator %d', obj.id));
             operator.selection.geom(geometry.tag, 2);
             operator.selection.named(sprintf('%s_top_outlet_selection%d', geometry.tag, obj.id));
             
             % Creates the bottom outlet average operator.
             
-            tag = sprintf('bottom_outlet_average_operator%d', obj.id);
+            tags{3} = sprintf('bottom_outlet_average_operator%d', obj.id);
             
-            operator = component.cpl.create(tag, 'Average');
+            operator = component.cpl.create(tags{3}, 'Average');
             operator.label(sprintf('Bottom Outlet Average Operator %d', obj.id));
             operator.selection.geom(geometry.tag, 2);
             operator.selection.named(sprintf('%s_bottom_outlet_selection%d', geometry.tag, obj.id));
             
             % Creates the top inlet average operator.
             
-            tag = sprintf('top_inlet_average_operator%d', obj.id);
+            tags{4} = sprintf('top_inlet_average_operator%d', obj.id);
             
-            operator = component.cpl.create(tag, 'Average');
+            operator = component.cpl.create(tags{4}, 'Average');
             operator.label(sprintf('Top Inlet Average Operator %d', obj.id));
             operator.selection.geom(geometry.tag, 2);
             operator.selection.named(sprintf('%s_top_inlet_selection%d', geometry.tag, obj.id));
@@ -662,45 +662,45 @@ classdef CoaxialBoreholeHeatExchanger
         
     end
     
-%     methods (Static)
-%         
-%         function CreateField(file_name)
-%             
-%             % Reads the borehole field configuration:
-%             % starting point (x, y, z) and ending point (x, y, z) and
-%             % borehole factor.
-%             
-%             field_config = load(file_name);
-%             
-%             sx = field_config(:, 1);
-%             sy = field_config(:, 2);
-%             sz = field_config(:, 3);
-%             
-%             ex = field_config(:, 4);
-%             ey = field_config(:, 5);
-%             ez = field_config(:, 6);
-%             
-%             theta = acos(z ./ r);
-%             phi = atan2(y, x);
-% 
-%             tilt = 90 - 180 * theta / pi;
-%             azim = 180 * phi / pi;
-% 
-%             i = [];
-% 
-%             for j = 1:length(tilt)
-%                 if (abs(azim(j)) < 1e-6) || (abs(azim(j)-90) < 1e-6)
-%                     i = [i j];
-%                 elseif 0 <= azim(j) && azim(j) <= 90
-%                     i = [i j];
-%                 end
-%             end
-% 
-%             tilt = tilt(i);
-%             azim = azim(i);
-%             
-%         end
-%         
-%     end
+    %     methods (Static)
+    %
+    %         function CreateField(file_name)
+    %
+    %             % Reads the borehole field configuration:
+    %             % starting point (x, y, z) and ending point (x, y, z) and
+    %             % borehole factor.
+    %
+    %             field_config = load(file_name);
+    %
+    %             sx = field_config(:, 1);
+    %             sy = field_config(:, 2);
+    %             sz = field_config(:, 3);
+    %
+    %             ex = field_config(:, 4);
+    %             ey = field_config(:, 5);
+    %             ez = field_config(:, 6);
+    %
+    %             theta = acos(z ./ r);
+    %             phi = atan2(y, x);
+    %
+    %             tilt = 90 - 180 * theta / pi;
+    %             azim = 180 * phi / pi;
+    %
+    %             i = [];
+    %
+    %             for j = 1:length(tilt)
+    %                 if (abs(azim(j)) < 1e-6) || (abs(azim(j)-90) < 1e-6)
+    %                     i = [i j];
+    %                 elseif 0 <= azim(j) && azim(j) <= 90
+    %                     i = [i j];
+    %                 end
+    %             end
+    %
+    %             tilt = tilt(i);
+    %             azim = azim(i);
+    %
+    %         end
+    %
+    %     end
     
 end
