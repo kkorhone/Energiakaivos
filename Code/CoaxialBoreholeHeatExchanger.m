@@ -24,7 +24,7 @@ classdef CoaxialBoreholeHeatExchanger
     
     properties
         id
-        boreholeCollar, boreholeFooter, boreholeDiameter, flowRate, heatCarrierFluid, coaxialPipe, mirrorPlanes, bufferRadius
+        boreholeCollar, boreholeFooter, boreholeDiameter, flowRate, heatCarrierFluid, coaxialPipe, cutPlanes, bufferRadius
         boreholeRadius, boreholeLength, boreholeAxis, thermalConductivityTensor
         outerFluidVelocity, innerFluidVelocity
     end
@@ -75,12 +75,12 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Handles variable arguments in.
             
-            obj.mirrorPlanes = [];
+            obj.cutPlanes = [];
             obj.bufferRadius = 1.0;
             
             for i = 1:2:numel(varargin)
-                if strcmpi(varargin{i}, 'mirrorplanes')
-                    obj.mirrorPlanes = varargin{i+1};
+                if strcmpi(varargin{i}, 'cutplanes')
+                    obj.cutPlanes = varargin{i+1};
                 elseif strcmpi(varargin{i}, 'bufferradius')
                     obj.bufferRadius = varargin{i+1};
                 else
@@ -137,9 +137,9 @@ classdef CoaxialBoreholeHeatExchanger
             plot3([obj.boreholeCollar(1), obj.boreholeFooter(1)], [obj.boreholeCollar(2), obj.boreholeFooter(2)], [obj.boreholeCollar(3), obj.boreholeFooter(3)], 'r-')
         end
         
-        function createWorkPlaneStructure(obj, workPlane, radiuses)
+        function tags = createWorkPlaneStructure(obj, workPlane, radiuses)
             
-            circleTags = cell(size(radiuses));
+            circleTags = cell(1, length(radiuses));
             
             for i = 1:numel(radiuses)
                 circleTags{i} = sprintf('circle%d', i);
@@ -148,17 +148,19 @@ classdef CoaxialBoreholeHeatExchanger
                 circle.set('r', radiuses(i)');
             end
             
-            polygonTags = cell(size(obj.mirrorPlanes));
+            polygonTags = cell(1, length(obj.cutPlanes));
             
-            for i = 1:numel(obj.mirrorPlanes)
-                polygonTags{i} = obj.mirrorPlanes{i}.createCutStructure(workPlane, max(radiuses));
+            for i = 1:numel(obj.cutPlanes)
+                polygonTags{i} = obj.cutPlanes{i}.createCutStructure(workPlane, max(radiuses));
             end
             
-            if ~isempty(obj.mirrorPlanes)
+            if ~isempty(obj.cutPlanes)
                 difference = workPlane.geom.create('difference', 'Difference');
                 difference.selection('input').set(circleTags);
                 difference.selection('input2').set(polygonTags);
             end
+            
+            tags = cat(2, circleTags, polygonTags);
             
         end
         

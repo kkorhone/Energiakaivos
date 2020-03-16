@@ -1,4 +1,8 @@
+% This function uses the CoaxialBoreholeHeatExchanger class.
+
 function model = init_sector_model_v2(borehole_tilt, sector_angle, varargin)
+
+clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
 % =========================================================================
 % Checks input parameters
@@ -27,11 +31,12 @@ if borehole_tilt(1) > -90
 end
 
 L_borehole = 300;
-d_borehole = 76;
+d_borehole = 76e-3;
 buffer_width = 400;
 borehole_offset = 10;
 r_buffer = 0.5;
 T_inlet = 6;
+flow_rate = 0.6 / 1000;
 
 for i = 1:length(varargin)/2
     if strcmp(varargin{(i-1)*2+1}, 'L_borehole')
@@ -103,6 +108,7 @@ fprintf(1, 'init_model: L_borehole = %f m.\n', L_borehole);
 fprintf(1, 'init_model: borehole_offset = %f m.\n', borehole_offset);
 fprintf(1, 'init_model: r_buffer = %f m.\n', r_buffer);
 fprintf(1, 'init_model: buffer_width = %f m.\n', buffer_width);
+fprintf(1, 'init_model: flow_rate = %f m^3/s.\n', flow_rate);
 
 if length(T_inlet) == 1
     fprintf(1, 'init_model: T_inlet = %f degC.\n', T_inlet);
@@ -326,28 +332,35 @@ fprintf(1, 'init_model: Creating geometry... ');
 % Creates work planes and extrusions for borehole structures
 % -------------------------------------------------------------------------
 
-fluid = HeatCarrierFluid(0, 20, 0.6/1000);
+fluid = HeatCarrierFluid(0, 20);
 
 pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
 
-cbhe_array = cell(1, length(borehole_tilt));
+bhe_array = cell(1, length(borehole_tilt));
+bhe_factors = zeros(1, length(borehole_tilt));
 
 for i = 1:length(borehole_tilt)
+    theta = borehole_tilt(i) * pi / 180;
+    borehole_axis = [cos(theta), 0, sin(theta)];
+    borehole_collar = borehole_offset * borehole_axis;
+    borehole_footer = (borehole_offset + L_borehole) * borehole_axis;
     if borehole_tilt(i) == -90
-        planes = {MirrorPlane(0), MirrorPlane(180-0.5*sector_angle)};
-        cbhe_array{i} = CoaxialBoreholeHeatExchanger([0 0 0], borehole_tilt(i), 0, 76e-3, L_borehole, borehole_offset, r_buffer, fluid, pipe, planes);
+        planes = {CutPlane(0), CutPlane(180-0.5*sector_angle)};
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, d_borehole, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', r_buffer);
+        bhe_factors(i) = 1;
     else
-        planes = {MirrorPlane(0)};
-        cbhe_array{i} = CoaxialBoreholeHeatExchanger([0 0 0], borehole_tilt(i), 0, 76e-3, L_borehole, borehole_offset, r_buffer, fluid, pipe, planes);
+        planes = {CutPlane(0)};
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, d_borehole, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', r_buffer);
+        bhe_factors(i) = 360 / sector_angle;
     end
 end
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createGeometry(geometry);
+    bhe_array{i}.createGeometry(geometry);
 end
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createSelections(geometry);
+    bhe_array{i}.createSelections(geometry);
 end
 
 % -------------------------------------------------------------------------
@@ -404,8 +417,13 @@ fprintf(1, 'init_model: Creating mesh... ');
 % -------------------------------------------------------------------------
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createMesh(mesh);
+    bhe_array{i}.createMesh(geometry, mesh);
 end
+
+bedrock_mesh = mesh.create('bedrock_mesh', 'FreeTet');
+
+bedrock_mesh_size = bedrock_mesh.create('bedrock_mesh_size', 'Size');
+bedrock_mesh_size.set('hauto', 4);
 
 % hauto 9 = extremenly coarse
 % hauto 8 = extra coarse
@@ -431,7 +449,7 @@ fprintf(1, 'Done.\n');
 fprintf(1, 'init_model: Creating operators... ');
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createOperators(component, geometry);
+    bhe_array{i}.createOperators(component, geometry);
 end
 
 fprintf(1, 'Done.\n');
@@ -467,21 +485,21 @@ physics.feature('solid1').set('Cp_mat', 'userdef');
 physics.feature('solid1').set('Cp', 'Cp_rock');
 
 physics.create('hf1', 'HeatFluxBoundary', 2);
-physics.feature('hf1').selection.named('geometry_surface_selection');
+physics.feature('hf1').selection.named(sprintf('%s_surface_selection', geometry.tag));
 physics.feature('hf1').set('q0', '-q_geothermal');
 physics.feature('hf1').label('Ground Surface Heat Flux BC');
 
 physics.create('hf2', 'HeatFluxBoundary', 2);
-physics.feature('hf2').selection.named('geometry_bottom_selection');
+physics.feature('hf2').selection.named(sprintf('%s_bottom_selection', geometry.tag));
 physics.feature('hf2').set('q0', '+q_geothermal');
 physics.feature('hf2').label('Geothermal Heat Flux BC');
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createPhysics(physics);
+    bhe_array{i}.createPhysics(geometry, physics);
 end
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createBoundaryConditions(physics, 'T_inlet');
+    bhe_array{i}.createBoundaryConditions(geometry, physics, 'T_inlet');
 end
 
 fprintf(1, 'Done.\n');
@@ -496,8 +514,26 @@ variables = component.variable.create('component_variables');
 variables.label('Component Variables');
 
 for i = 1:length(borehole_tilt)
-    cbhe_array{i}.createVariables(variables, physics);
+    bhe_array{i}.createVariables(variables, physics);
 end
+
+expr = sprintf('%d*T_outlet%d', bhe_factors(1), bhe_array{1}.id);
+
+for i = 2:length(bhe_array)
+    expr = sprintf('%s+%d*T_outlet%d', expr, bhe_factors(i), bhe_array{i}.id);
+end
+
+expr = sprintf('(%s)/%d', expr, sum(bhe_factors));
+
+variables.set('T_outlet', expr);
+
+expr = sprintf('%d*Q_wall%d', bhe_factors(1), bhe_array{1}.id);
+
+for i = 2:length(bhe_array)
+    expr = sprintf('%s+%d*Q_wall%d', expr, bhe_factors(i), bhe_array{i}.id);
+end
+
+variables.set('Q_total', expr);
 
 fprintf(1, 'Done.\n');
 
@@ -585,8 +621,6 @@ model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 
 fprintf(1, 'Done.\n');
 
-return
-
 % =========================================================================
 % Creates results
 % =========================================================================
@@ -628,44 +662,6 @@ global_plot = plot_group.create(sprintf('global_plot%d',i), 'Global');
 global_plot.set('expr', 'Q_walls');
 global_plot.set('unit', 'kW');
 global_plot.set('descr', 'Total heat rate');
-
-% -------------------------------------------------------------------------
-% Fluid temperatures
-% -------------------------------------------------------------------------
-
-line_colors = {'red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'black', 'gray'};
-
-plot_group = model.result.create('plot_group3', 'PlotGroup1D');
-plot_group.label('Fluid temperatures');
-plot_group.set('titletype', 'manual');
-plot_group.set('title', 'Fluid temperatures');
-
-for i = 1:length(borehole_tilt)
-
-    line_graph = plot_group.create(sprintf('inner_line%d',i), 'LineGraph');
-    line_graph.selection.named(sprintf('geometry_inner_edge_selection%d', i));
-    line_graph.set('expr', sprintf('-sqrt((x-nx%d*borehole_offset)^2+(z-nz%d*borehole_offset)^2)', i, i));
-    line_graph.set('xdata', 'expr');
-    line_graph.set('xdataunit', 'degC');
-    line_graph.set('linecolor', line_colors{mod(i,length(line_colors))+1});
-    line_graph.set('resolution', 'normal');
-
-    line_graph = plot_group.create(sprintf('outer_line%d',i), 'LineGraph');
-    line_graph.selection.named(sprintf('geometry_outer_edge_selection%d', i));
-    line_graph.set('expr', sprintf('-sqrt((x-nx%d*borehole_offset)^2+(z-nz%d*borehole_offset)^2)', i, i));
-    line_graph.set('xdata', 'expr');
-    line_graph.set('xdataunit', 'degC');
-    line_graph.set('linecolor', line_colors{mod(i,length(line_colors))+1});
-    line_graph.set('resolution', 'normal');
-
-end
-
-% plot_group.set('looplevelinput', {'last'});
-plot_group.set('xlabel', 'Temperature [degC]');
-plot_group.set('ylabel', 'Distance along borehole axis [m]');
-plot_group.set('showlegends', false);
-plot_group.set('xlabelactive', false);
-plot_group.set('ylabelactive', false);
 
 % -------------------------------------------------------------------------
 % Inlet and outlet temperatures

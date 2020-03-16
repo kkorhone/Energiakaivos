@@ -1,10 +1,10 @@
-classdef MirrorPlane
+classdef CutPlane
     
     properties (Constant)
-        Negative_XZ_Plane = MirrorPlane([+1 0], [0 -1]) % The negative side of the XZ plane is mirrored.
-        Positive_XZ_Plane = MirrorPlane([+1 0], [0 +1]) % The positive side of the XZ plane is mirrored.
-        Negative_YZ_Plane = MirrorPlane([0 +1], [+1 0]) % The negative side of the YZ plane is mirrored.
-        Positive_YZ_Plane = MirrorPlane([0 +1], [-1 0]) % The positive side of the YZ plane is mirrored.
+        Negative_XZ_Plane = CutPlane([+1 0], [0 -1]) % The negative side of the XZ plane is mirrored.
+        Positive_XZ_Plane = CutPlane([+1 0], [0 +1]) % The positive side of the XZ plane is mirrored.
+        Negative_YZ_Plane = CutPlane([0 +1], [+1 0]) % The negative side of the YZ plane is mirrored.
+        Positive_YZ_Plane = CutPlane([0 +1], [-1 0]) % The positive side of the YZ plane is mirrored.
     end
     
     properties
@@ -13,7 +13,7 @@ classdef MirrorPlane
     
     methods
         
-        function obj = MirrorPlane(varargin)
+        function obj = CutPlane(varargin)
             
             if nargin == 1
                 
@@ -36,21 +36,22 @@ classdef MirrorPlane
                 obj.u = u / sqrt(dot(u, u));
                 obj.v = v / sqrt(dot(v, v));
                 
+                %             end
+                
+                assert(abs(dot(obj.u, obj.v)) < 1e-9);
+                
             end
-            
-            assert(abs(dot(obj.u, obj.v)) < 1e-9);
-            
         end
         
-        function polygon_tag = createCutStructure(obj, work_plane, radius)
+        function tag = createCutStructure(obj, work_plane, radius)
             
             p1 = radius * obj.u;
             p2 = radius * (obj.u + obj.v);
             p3 = radius * (-obj.u + obj.v);
             p4 = radius * -obj.u;
             
-            polygon_tag = char(work_plane.geom.feature().uniquetag('polygon'));
-            polygon = work_plane.geom.create(polygon_tag, 'Polygon');
+            tag = char(work_plane.geom.feature().uniquetag('polygon'));
+            polygon = work_plane.geom.create(tag, 'Polygon');
             
             polygon.set('source', 'table');
             polygon.set('table', to_cell_array([p1(1) p1(2); p2(1) p2(2); p3(1) p3(2); p4(1) p4(2)]));

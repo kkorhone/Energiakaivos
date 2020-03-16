@@ -1,3 +1,5 @@
+% This function uses the CoaxialBoreholeHeatExchanger class.
+
 function model = init_quarter_hemisphere_model(file_name)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
@@ -30,30 +32,78 @@ field_config = load(file_name);
 bhe_collars = field_config(:, 1:3);
 bhe_footers = field_config(:, 4:6);
 bhe_factors = field_config(:, 7);
-cut_planes = field_config(:, 8);
+
+x_max = max(max(bhe_collars(:,1)), max(bhe_footers(:,1)));
+y_max = max(max(bhe_collars(:,2)), max(bhe_footers(:,2)));
+z_min = min(min(bhe_collars(:,3)), min(bhe_footers(:,3)));
+z_max = max(max(bhe_collars(:,3)), max(bhe_footers(:,3)));
+
+x_max = ceil(x_max / 100) * 100;
+y_max = ceil(y_max / 100) * 100;
+z_min = floor(z_min / 100) * 100;
+z_max = ceil(z_max / 100) * 100;
+
+x_max = x_max + 400;
+y_max = y_max + 400;
+z_min = z_min - 400;
+z_max = z_max + 400;
 
 % -------------------------------------------------------------------------
 % Constructs the BHEs.
 % -------------------------------------------------------------------------
 
+vertical = [0, 0, -1];
+
 bhe_array = {};
 
 for i = 1:length(bhe_factors)
-    if cut_planes(i) == 101
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane, MirrorPlane.Negative_YZ_Plane});
-    elseif cut_planes(i) == 102
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Negative_XZ_Plane});
-    elseif cut_planes(i) == 103
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'mirrorplanes', {MirrorPlane.Positive_XZ_Plane});
-    elseif cut_planes(i) == 104
-        bhe_array{end+1} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius);
+
+    bhe_axis = bhe_footers(i,:) - bhe_collars(i,:);
+    bhe_axis = bhe_axis / sqrt(dot(bhe_axis, bhe_axis));
+    
+    is_vertical = abs(dot(vertical, bhe_axis) - 1) < 1e-6;
+    
+    if (abs(bhe_collars(i, 1)) < 1e-6) && (abs(bhe_collars(i, 2)) < 1e-6)
+        if is_vertical
+            % Borehole is vertical and located at the origin.
+            fprintf(1, 'Vertical BHE at origin (factor=%d).\n', bhe_factors(i));
+            cut_planes = {CutPlane(0), CutPlane(90)};
+            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
+        else
+            error('Non-vertical BHE at origin.');
+        end
+    elseif abs(bhe_collars(i, 2)) < 1e-6
+        % Borehole is located on the x axis.
+        if is_vertical
+            error('Vertical BHE on x axis.');
+        else
+            fprintf(1, 'Non-vertical BHE on x axis (factor=%d).\n', bhe_factors(i));
+            cut_planes = {CutPlane(0)};
+        end
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
+    elseif abs(bhe_collars(i, 1)) < 1e-6
+        % Borehole is located on the y axis.
+        if is_vertical
+            error('Vertical BHE on y axis.');
+        else
+            fprintf(1, 'Non-vertical BHE on y axis (factor=%d).\n', bhe_factors(i));
+            cut_planes = {CutPlane(180)};
+        end
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
     else
-        error('Invalid cut plane code.');
+        % Borehole is located in the first quadrant.
+        if is_vertical
+            error('Vertical BHE in quadrant.');
+        else
+            fprintf(1, 'Non-vertical BHE in first quadrant (factor=%d).\n', bhe_factors(i));
+        end
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius);
     end
-    fprintf(1, 'bhe_factor=%d\n', bhe_factors(i));
 end
 
 fprintf(1, 'sum(bhe_factors)=%d length(bhe_array)=%d\n', sum(bhe_factors), length(bhe_array));
+
+close all
 
 plot_bhe_field(bhe_array)
 
@@ -149,17 +199,17 @@ end
 bedrock_work_plane = geom.create('bedrock_work_plane', 'WorkPlane');
 bedrock_work_plane.label('Bedrock Work Plane');
 bedrock_work_plane.set('unite', true);
-bedrock_work_plane.set('quickz', -model_height);
+bedrock_work_plane.set('quickz', z_min);
 
 bedrock_circle = bedrock_work_plane.geom.create('bedrock_circle', 'Circle');
-bedrock_circle.set('r', model_radius);
+bedrock_circle.set('r', max(x_max, y_max));
 bedrock_circle.set('angle', 90);
 
 bedrock_extrude = geom.feature.create('bedrock_extrude', 'Extrude');
 bedrock_extrude.label('Bedrock Extrusion');
 bedrock_extrude.set('workplane', bedrock_work_plane.tag);
 bedrock_extrude.selection('input').set({char(bedrock_work_plane.tag)});
-bedrock_extrude.setIndex('distance', model_height, 0);
+bedrock_extrude.setIndex('distance', z_max-z_min, 0);
 
 % =========================================================================
 % Creates selections.
@@ -226,7 +276,7 @@ end
 bedrock_mesh = mesh.create('bedrock_mesh', 'FreeTet');
 
 bedrock_mesh_size = bedrock_mesh.create('bedrock_mesh_size', 'Size');
-bedrock_mesh_size.set('hauto', 4);
+bedrock_mesh_size.set('hauto', 2);
 
 % -------------------------------------------------------------------------
 % Runs the mesh.
@@ -301,7 +351,7 @@ surface_temperature_bc.set('T0', 'T_surface');
 bottom_heat_flux_bc = phys.create('bottom_heat_flux_bc', 'HeatFluxBoundary', 2);
 bottom_heat_flux_bc.label('Geothermal Heat Flux BC');
 bottom_heat_flux_bc.selection.named(sprintf('%s_bottom_boundary_selection', geom.tag));
-bottom_heat_flux_bc.set('q0', '+q_geothermal');
+bottom_heat_flux_bc.set('q0', 'q_geothermal');
 
 % -------------------------------------------------------------------------
 % Adds the BHE physics to the physics node.
@@ -316,31 +366,9 @@ end
 % -------------------------------------------------------------------------
 
 for i = 1:length(bhe_array)
-    bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
+    bhe_array{i}.createBoundaryConditions(geom, phys, '2[degC]');
 end
-
-% -------------------------------------------------------------------------
-% Creates events.
-% -------------------------------------------------------------------------
-
-% events = comp.physics.create('ev', 'Events', geom.tag);
-% events.prop('ShapeProperty').set('order', 1);
-
-% discrete_states = events.create('discrete_states', 'DiscreteStates', -1);
-% discrete_states.set('dim', {'is_charging'; 'is_discharging'});
-% discrete_states.set('dimInit', [1; 0]);
-
-% charging_event = events.create('charging_event', 'ExplicitEvent', -1);
-% charging_event.set('start', '0[a]');
-% charging_event.set('period', '1[a]');
-% charging_event.set('reInitName', {'is_charging'; 'is_discharging'});
-% charging_event.set('reInitValue', [1; 0]);
-% 
-% discharging_event = events.create('discharging_event', 'ExplicitEvent', -1);
-% discharging_event.set('start', '0.5[a]');
-% discharging_event.set('period', '1[a]');
-% discharging_event.set('reInitName', {'is_charging'; 'is_discharging'});
-% discharging_event.set('reInitValue', [0; 1]);
 
 fprintf(1, 'Done.\n');
 
@@ -391,16 +419,16 @@ vars.set('Q_total', expr);
 % Creates temperature drop variable.
 % -------------------------------------------------------------------------
 
-total_rate = 0;
+% total_rate = 0;
+% 
+% for i = 1:numel(bhe_array)
+%     total_rate = total_rate + bhe_array{i}.flowRate;
+% end
 
-for i = 1:numel(bhe_array)
-    total_rate = total_rate + bhe_array{i}.flowRate;
-end
-
-% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, length(bhe_array), working_fluid.flowRate));
-vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, total_rate));
-
-fprintf(1, 'Done.\n');
+% % vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, length(bhe_array), working_fluid.flowRate));
+% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, total_rate));
+% 
+% fprintf(1, 'Done.\n');
 
 % =========================================================================
 % Creates study and solution.
@@ -458,6 +486,8 @@ model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 % model.sol('sol1').runAll;
 
 fprintf(1, 'Done.\n');
+
+return
 
 events = comp.physics.create('events', 'Events', 'geometry');
 events.label('Charging and Discharging Events');

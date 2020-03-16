@@ -1,75 +1,10 @@
+from meshzoo import icosa_sphere, uv_sphere
 from mpl_toolkits.mplot3d import Axes3D
-from collections import OrderedDict
-import meshzoo as mz
-from copy import copy
+from scipy.optimize import brute
 from pylab import *
 
 def distance_between_points(p1, p2):
     return sqrt((p1[0]-p2[0])**2+(p1[1]-p2[1])**2+(p1[2]-p2[2])**2)
-
-def _quarter_symmetry(bhe_axes):
-    # Finds the BHEs located in the first quadrant.
-    i = where((bhe_axes[:,0]>-1e-6)&(bhe_axes[:,1]>-1e-6))[0]
-    quad_axes = bhe_axes[i, :]
-    # Mirrors the first quadrant axes with respect to the y axis.
-    half_axes = copy(quad_axes)
-    half_axes[:, 0] *= -1
-    half_axes = vstack((quad_axes, half_axes))
-    # Mirrors the first and second quadrant axes with respect to the x axis.
-    full_axes = copy(half_axes)
-    full_axes[:, 1] *= -1
-    full_axes = vstack((half_axes, full_axes))
-    # Calculates the number of times the BHEs are found in the fully reflected dataset and plots the results.
-    bhe_counts = zeros(bhe_axes.shape[0])
-    figure()
-    for i in range(bhe_axes.shape[0]):
-        for j in range(full_axes.shape[0]):
-            if distance_between_points(bhe_axes[i,:], full_axes[j,:]) < 1e-6:
-                bhe_counts[i] += 1
-        if bhe_counts[i] == 0:
-            plot(bhe_axes[i,0], bhe_axes[i,1], "ro")
-        elif bhe_counts[i] == 1:
-            plot(bhe_axes[i,0], bhe_axes[i,1], "yo")
-        elif bhe_counts[i] == 2:
-            plot(bhe_axes[i,0], bhe_axes[i,1], "go")
-        elif bhe_counts[i] == 4:
-            plot(bhe_axes[i,0], bhe_axes[i,1], "mo")
-        else:
-            raise SystemExit("Invalid BHE count.")
-    # Plots the first quadrant.
-    plot([0, 0, 1, 1, 0], [0, 1, 1, 0, 0], "k--")
-    for i in range(bhe_axes.shape[0]):
-        text(bhe_axes[i,0], bhe_axes[i,1], "%.0f"%bhe_counts[i])
-    # Checks for symmetry.
-    if any(bhe_counts==0):
-        title("Asymmetry")
-    else:
-        title("Symmetry with %d of %d BHEs" % (quad_axes.shape[0], bhe_axes.shape[0]))
-    # Determines the BHE factors and the cut planes.
-    bhe_factors = ones(quad_axes.shape[0])
-    cut_planes = zeros(quad_axes.shape[0])
-    for i in range(quad_axes.shape[0]):
-        if abs(quad_axes[i,0]) < 1e-6 and abs(quad_axes[i,1]) < 1e-6:
-            cut_planes[i] = 101
-        elif abs(quad_axes[i,1]) < 1e-6:
-            cut_planes[i] = 102
-        elif abs(quad_axes[i,0]) < 1e-6:
-            cut_planes[i] = 103
-        else:
-            cut_planes[i] = 104
-        for j in range(bhe_axes.shape[0]):
-            if distance_between_points(quad_axes[i,:], bhe_axes[j,:]) < 1e-6:
-                if bhe_counts[j] == 4:
-                    bhe_factors[i] = 1
-                elif bhe_counts[j] == 2:
-                    bhe_factors[i] = 2
-                elif bhe_counts[j] == 1:
-                    bhe_factors[i] = 4
-                else:
-                    raise SystemExit("Invalid BHE count.")
-    axis("equal")
-    show()
-    return quad_axes, bhe_factors, cut_planes
 
 def quarter_symmetry(bhe_collars, bhe_footers):
     # Finds the BHEs located in the first quadrant.
@@ -129,18 +64,9 @@ def quarter_symmetry(bhe_collars, bhe_footers):
         title("Asymmetry")
     else:
         title("Symmetry with %d of %d BHEs" % (quad_collars.shape[0], bhe_collars.shape[0]))
-    # Determines the BHE factors and the cut planes.
+    # Determines the BHE factors.
     bhe_factors = ones(quad_collars.shape[0])
-    cut_planes = zeros(quad_collars.shape[0])
     for i in range(quad_collars.shape[0]):
-        if abs(quad_collars[i,0]) < 1e-6 and abs(quad_collars[i,1]) < 1e-6:
-            cut_planes[i] = 101
-        elif abs(quad_collars[i,1]) < 1e-6:
-            cut_planes[i] = 102
-        elif abs(quad_collars[i,0]) < 1e-6:
-            cut_planes[i] = 103
-        else:
-            cut_planes[i] = 104
         for j in range(bhe_collars.shape[0]):
             if distance_between_points(quad_collars[i,:], bhe_collars[j,:]) < 1e-6:
                 if bhe_counts[j] == 4:
@@ -156,31 +82,40 @@ def quarter_symmetry(bhe_collars, bhe_footers):
     ax.set_ylabel("y")
     ax.set_zlabel("z")
     show()
-    return quad_collars, quad_footers, bhe_factors, cut_planes
-
-def make_hemispherical_bhe_axes(type, level):
-    if type == "ico":
-        if level == 1:
-            axes, _ = mz.icosa_sphere(2) # 25
-        elif level == 2:
-            axes, _ = mz.icosa_sphere(4) # 89
-        elif level == 3:
-            axes, _ = mz.icosa_sphere(5) # 136
-        elif level == 4:
-            axes, _ = mz.icosa_sphere(8) # 337
-    elif type == "uv":
-        if level == 1:
-            axes, _ = mz.uv_sphere(num_points_per_circle=6, num_circles=9) # 25 BHEs
-        elif level == 2:
-            axes, _ = mz.uv_sphere(num_points_per_circle=12, num_circles=15) # 85 BHEs
-        elif level == 3:
-            axes, _ = mz.uv_sphere(num_points_per_circle=18, num_circles=17) # 145 BHEs
-        elif level == 4:
-            axes, _ = mz.uv_sphere(num_points_per_circle=26, num_circles=27) # 339 BHEs
+    # Print some info.
+    print("Total number of BHEs:    %d" % bhe_collars.shape[0])
+    print("Sum of BHE factors:      %d" % sum(bhe_factors))
+    print("Number of quadrant BHEs: %d" % quad_collars.shape[0])
+    if sum(bhe_factors) != bhe_collars.shape[0]:
+        print("Result:                  asymmetry")
     else:
-        raise ValueError("Type must be either 'ico' or 'uv'.")
-    i = where(axes[:,2] <= 0)[0]
-    return axes[i]
+        print("Result:                  symmetry")
+    return quad_collars, quad_footers, bhe_factors
+
+def make_hemispherical_bhe_field(bhe_axes, bhe_offset, bhe_length, field_depth):
+    print("Hemispherical BHE field: N=%d" % bhe_axes.shape[0])
+    vertical_offset = array([0, 0, -field_depth])
+    bhe_collars = bhe_offset * bhe_axes + vertical_offset
+    bhe_footers = (bhe_offset + bhe_length) * bhe_axes + vertical_offset
+    return bhe_collars, bhe_footers
+
+def make_rectangular_bhe_field(field_width, field_height, nx, ny, bhe_length, field_depth):
+    x = linspace(-0.5*field_width, +0.5*field_width, nx)
+    y = linspace(-0.5*field_height, +0.5*field_height, ny)
+    dx, dy = x[1] - x[0], y[1] - y[0]
+    x, y = meshgrid(x, y)
+    x = ravel(x)
+    y = ravel(y)
+    print("Rectangular BHE field: N=%d dx=%.3f dy=%.3f" % (length(x), dx, dy))
+    bhe_collars = zeros((len(x), 3))
+    bhe_footers = zeros((len(x), 3))
+    bhe_collars[:, 0] = x
+    bhe_collars[:, 1] = y
+    bhe_collars[:, 2] = -field_depth
+    bhe_footers[:, 0] = x
+    bhe_footers[:, 1] = y
+    bhe_footers[:, 2] = -field_depth-bhe_length
+    return bhe_collars, bhe_footers
 
 def plot_bhe_axes(bhe_axes, plot_title):
     fig = figure()
@@ -194,30 +129,6 @@ def plot_bhe_axes(bhe_axes, plot_title):
     ax.set_zlabel("z")
     title("%s (%d BHEs)" % (plot_title, bhe_axes.shape[0]))
 
-def make_hemispherical_bhe_field(bhe_axes, bhe_offset, bhe_length, tunnel_depth):
-    tunnel_offset = array([0, 0, -tunnel_depth])
-    bhe_collars = bhe_offset * bhe_axes + tunnel_offset
-    bhe_footers = (bhe_offset + bhe_length) * bhe_axes + tunnel_offset
-    return bhe_collars, bhe_footers
-
-def make_rectangular_bhe_field(dx, dy, nx, ny, bhe_length):
-    x = linspace(-0.5*dx, +0.5*dx, nx)
-    y = linspace(-0.5*dy, +0.5*dy, ny)
-    print("Rectangular field")
-    print("Horizontal spacing = %f x %f" % (x[1]-x[0], y[1]-y[0]))
-    x, y = meshgrid(x, y)
-    x = ravel(x)
-    y = ravel(y)
-    bhe_collars = zeros((len(x), 3))
-    bhe_footers = zeros((len(x), 3))
-    bhe_collars[:, 0] = x
-    bhe_collars[:, 1] = y
-    bhe_collars[:, 2] = 0.0
-    bhe_footers[:, 0] = x
-    bhe_footers[:, 1] = y
-    bhe_footers[:, 2] = -bhe_length
-    return bhe_collars, bhe_footers
-
 def plot_bhe_field(bhe_collars, bhe_footers, plot_title):
     fig = figure()
     ax = Axes3D(fig)
@@ -230,33 +141,105 @@ def plot_bhe_field(bhe_collars, bhe_footers, plot_title):
     ax.set_ylabel("y")
     ax.set_zlabel("z")
 
-def write_bhe_field(txt_name, bhe_collars, bhe_footers, bhe_factors, cut_planes):
+def write_bhe_field(txt_name, bhe_collars, bhe_footers, bhe_factors):
     sx, sy, sz = bhe_collars.T
     ex, ey, ez = bhe_footers.T
     file = open(txt_name, "w")
     for i in range(len(bhe_factors)):
-        file.write("%+12.6f %+12.6f %+12.6f %+12.6f %+12.6f %+12.6f %6d %6d\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i], bhe_factors[i], cut_planes[i]))
+        file.write("%+12.6f %+12.6f %+12.6f %+12.6f %+12.6f %+12.6f %6d\n" % (sx[i], sy[i], sz[i], ex[i], ey[i], ez[i], bhe_factors[i]))
     file.close()
 
-bhe_axes = make_hemispherical_bhe_axes("ico", 1)
-bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 50, 100, 100)
+def make_ico_axes(level):
+    bhe_axes, _ = icosa_sphere(level)
+    i = where(bhe_axes[:, 2] <= 0)[0]
+    return bhe_axes[i]
 
-#bhe_collars0, bhe_footers0 = make_rectangular_bhe_field(300, 500, 7, 9, 300)
+def make_uv_axes(nppc, nc):
+    bhe_axes, _ = uv_sphere(num_points_per_circle=nppc, num_circles=nc)
+    i = where(bhe_axes[:, 2] <= 0)[0]
+    return bhe_axes[i]
 
-bhe_collars, bhe_footers, bhe_factors, cut_planes = quarter_symmetry(bhe_collars0, bhe_footers0)
+def find_uv_params(n):
+    diff_data = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
+    for nppc in range(4, 50):
+        for nc in range(4, 50):
+            bhe_axes = make_uv_axes(nppc, nc)
+            num_diff = abs(bhe_axes.shape[0] - n)
+            if num_diff <= 5:
+                diff_data[num_diff].append([nppc, nc])
+    return diff_data
 
-print("Total number of BHEs:    %d" % bhe_collars0.shape[0])
-print("Sum of BHE factors:      %d" % sum(bhe_factors))
-print("Number of quadrant BHEs: %d" % bhe_collars.shape[0])
+def write_ico_uv_params(file_name):
+    file = open(file_name, "w")
+    for level in range(1, 11):
+        bhe_axes = make_ico_axes(level)
+        file.write("ico: level=%d N=%d\n" % (level, bhe_axes.shape[0]))
+        diff_data = find_uv_params(bhe_axes.shape[0])
+        for i in range(6):
+            file.write(" -> uv: diff=%d pars=%s\n" % (i, str(diff_data[i])))
+        file.write("\n")
+    file.close()
 
-if sum(bhe_factors) != bhe_collars0.shape[0]:
-    print("Result:                  asymmetry")
-    raise SystemExit("Asymmetry!")
-else:
-    print("Result:                  symmetry")
+#write_ico_uv_params("ico_uv_params.txt")
 
-write_bhe_field("test.txt", bhe_collars, bhe_footers, bhe_factors, cut_planes)
+#bhe_collars0, bhe_footers0 = make_rectangular_bhe_field(100, 100, 5, 5, 300)
 
-plot_bhe_field(bhe_collars, bhe_footers, "BHE Field")
+# Ico field levels that produce symmetric BHE fields: 1, 2, 4, 5, 8 and 10.
 
-show()
+# ----------------   -----------------------
+#    Ico Fields             Uv Fields
+# ----------------   -----------------------
+# Level Quad Total   Nppc Nc Quad Total Diff
+# ----------------   -----------------------
+#     1    3     8      4  5    5     9    1
+#     2    9    25      8  7   10    25    0
+#     4   27    89     18 11   26    91    2
+#     5   39   136     20 15   43   141    5
+#     8   93   337     28 25   97   337    0
+#    10  141   521     40 27  144   521    0
+# ----------------   -----------------------
+
+def make_ico_field(level):
+    bhe_axes = make_ico_axes(level)
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 30, 100, 100)
+    bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
+    write_bhe_field("ico_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
+    plot_bhe_field(bhe_collars, bhe_footers, "Ico Field %d" % sum(bhe_factors))
+    show()
+
+def make_uv_field(nppc, nc):
+    bhe_axes = make_uv_axes(nppc, nc)
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 10, 300, 1450)
+    bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
+    write_bhe_field("uv_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
+    plot_bhe_field(bhe_collars, bhe_footers, "UV Field %d" % sum(bhe_factors))
+    show()
+
+def make_test_field(borehole_tilts, sector_angle):
+    borehole_tilts = sorted(borehole_tilts)
+    num_sectors = int(360.0 / sector_angle)
+    if borehole_tilts[0] == -90:
+        num_bhes = 1 + (len(borehole_tilts) - 1) * num_sectors
+    else:
+        num_bhes = len(borehole_tilts) * num_sectors
+    bhe_axes = zeros((num_bhes, 3))
+    k = 0
+    for i in range(len(borehole_tilts)):
+        if borehole_tilts[i] == -90:
+            bhe_axes[k,:] = [0, 0, -1]
+            k += 1
+        else:
+            theta = radians(borehole_tilts[i])
+            for j in range(num_sectors):
+                phi = radians(j * sector_angle)
+                bhe_axes[k,:] = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
+                k += 1
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 30, 300, 1450)
+    bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
+    write_bhe_field("test_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
+    plot_bhe_field(bhe_collars, bhe_footers, "UV Field %d" % sum(bhe_factors))
+    show()
+
+#make_ico_field(10)
+#make_uv_field(20, 15)
+make_test_field([-90, -75, -60, -45, -30, -15, 0], 30)
