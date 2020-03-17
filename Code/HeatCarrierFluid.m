@@ -45,7 +45,7 @@ classdef HeatCarrierFluid
             obj.thermalConductivity = dot(g, HeatCarrierFluid.THERMAL_CONDUCTIVITY_COEFFICIENTS);
             obj.dynamicViscosity = exp(dot(g, HeatCarrierFluid.DYNAMIC_VISCOSITY_COEFFOCIENTS));
             
-            fprintf(1, 'HeatCarrierFluid(k=%.3f Cp=%.1f rho=%.1f\n', obj.thermalConductivity, obj.specificHeatCapacity, obj.density);
+            fprintf(1, 'HeatCarrierFluid(k=%.3f Cp=%.1f rho=%.1f)\n', obj.thermalConductivity, obj.specificHeatCapacity, obj.density);
             
         end
         

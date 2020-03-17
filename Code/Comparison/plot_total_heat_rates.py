@@ -9,7 +9,7 @@ t = linspace(0, 100, 10000)
 
 f1 = interp1d(data1[:, 0], data1[:, 1])
 f2 = interp1d(data2[:, 0], data2[:, 1])
-f3 = interp1d(data2[:, 0], data2[:, 1])
+f3 = interp1d(data3[:, 0], data3[:, 1])
 
 plot(t, f1(t), "y-")
 plot(t, f2(t), "ro")
