@@ -10,6 +10,14 @@ classdef CoaxialPipe
         
         function obj = CoaxialPipe(outerWallDiameter, innerWallDiameter, thermalConductivity, specificHeatCapacity, density)
             
+            if innerWallDiameter <= 1e-6
+                error('Inner wall diameter must be positive.');
+            end
+            
+            if outerWallDiameter <= 1e-6
+                error('Outer wall diameter must be positive.');
+            end
+            
             if innerWallDiameter >= outerWallDiameter
                 error('Outer wall diameter must be larger than inner wall diameter.');
             end

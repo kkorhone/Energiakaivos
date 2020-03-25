@@ -201,7 +201,7 @@ def write_ico_uv_params(file_name):
 
 def make_ico_field(level):
     bhe_axes = make_ico_axes(level)
-    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 30, 100, 100)
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, borehole_offset, borehole_length, field_depth)
     bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
     write_bhe_field("ico_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
     plot_bhe_field(bhe_collars, bhe_footers, "Ico Field %d" % sum(bhe_factors))
@@ -209,7 +209,7 @@ def make_ico_field(level):
 
 def make_uv_field(nppc, nc):
     bhe_axes = make_uv_axes(nppc, nc)
-    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 10, 300, 1450)
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, borehole_offset, borehole_length, field_depth)
     bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
     write_bhe_field("uv_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
     plot_bhe_field(bhe_collars, bhe_footers, "UV Field %d" % sum(bhe_factors))
@@ -234,12 +234,21 @@ def make_test_field(borehole_tilts, sector_angle):
                 phi = radians(j * sector_angle)
                 bhe_axes[k,:] = [cos(theta)*cos(phi), cos(theta)*sin(phi), sin(theta)]
                 k += 1
-    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, 30, 300, 1450)
+    bhe_collars0, bhe_footers0 = make_hemispherical_bhe_field(bhe_axes, borehole_offset, borehole_length, -field_depth)
     bhe_collars, bhe_footers, bhe_factors = quarter_symmetry(bhe_collars0, bhe_footers0)
     write_bhe_field("test_field_%d.txt"%sum(bhe_factors), bhe_collars, bhe_footers, bhe_factors)
     plot_bhe_field(bhe_collars, bhe_footers, "UV Field %d" % sum(bhe_factors))
     show()
 
+borehole_offset = 30
+borehole_length = 300
+field_depth = 1440
+
 #make_ico_field(10)
 #make_uv_field(20, 15)
-make_test_field([-90, -75, -60, -45, -30, -15, 0], 30)
+#make_uv_field(24, 15)
+#make_test_field([-80, -70, -60, -50, -40, -30, -20, -10, 0], 22.5)
+#make_test_field([-80, -65, -50, -40, -30, -20, -10, 0], 20)
+#make_test_field([-80, -60, -40, -25, -10, 0], 15)
+
+make_ico_field(5)

@@ -1,6 +1,6 @@
 % This function uses the CoaxialBoreholeHeatExchanger class.
 
-function model = init_sector_model_v2(borehole_tilt, sector_angle, varargin)
+function model = init_sector_model(borehole_tilt, sector_angle, varargin)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
@@ -30,62 +30,64 @@ if borehole_tilt(1) > -90
     warning('Vertical borehole missing.');
 end
 
-L_borehole = 300;
-d_borehole = 76e-3;
+borehole_length = 300;
+borehole_diameter = 76e-3;
 buffer_width = 400;
 borehole_offset = 10;
-r_buffer = 0.5;
-T_inlet = 6;
+buffer_radius = 0.5;
+inlet_temperature = 6;
 flow_rate = 0.6 / 1000;
 
 for i = 1:length(varargin)/2
-    if strcmp(varargin{(i-1)*2+1}, 'L_borehole')
-        L_borehole = varargin{(i-1)*2+2};
-    elseif strcmp(varargin{(i-1)*2+1}, 'd_borehole')
-        d_borehole = varargin{(i-1)*2+2};
-    elseif strcmp(varargin{(i-1)*2+1}, 'borehole_offset')
-        borehole_offset = varargin{(i-1)*2+2};
-    elseif strcmp(varargin{(i-1)*2+1}, 'r_buffer')
-        r_buffer = varargin{(i-1)*2+2};
+    if strcmp(varargin{(i-1)*2+1}, 'borehole_length')
+        borehole_length = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'borehole_diameter')
+        borehole_diameter = varargin{(i-1)*2+2};
     elseif strcmp(varargin{(i-1)*2+1}, 'buffer_width')
         buffer_width = varargin{(i-1)*2+2};
-    elseif strcmp(varargin{(i-1)*2+1}, 'T_inlet')
-        T_inlet = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'borehole_offset')
+        borehole_offset = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'buffer_radius')
+        buffer_radius = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'inlet_temperature')
+        inlet_temperature = varargin{(i-1)*2+2};
+    elseif strcmp(varargin{(i-1)*2+1}, 'flow_rate')
+        flow_rate = varargin{(i-1)*2+2};
     else
         error('Unrecognized named argument: ''%s''.', string(varargin{(i-1)*2+1}));
     end
 end
 
-if d_borehole <= 0
+if borehole_diameter <= 0
     error('Borehole diameter must be positive.');
 end
 
-if d_borehole < 76 || d_borehole > 200
-    warning('Borehole diameter should be 76 <= d_borehole <= 200');
+if borehole_diameter < 76 || borehole_diameter > 200
+    warning('Borehole diameter should be 76 <= borehole_diameter <= 200');
 end
 
-if L_borehole <= 0
+if borehole_length <= 0
     error('Borehole length must be positive.');
 end
 
-if L_borehole < 50 || L_borehole > 2000
-    warning('Borehole length should be 50 <= L_borehole <= 2000.');
+if borehole_length < 50 || borehole_length > 2000
+    warning('Borehole length should be 50 <= borehole_length <= 2000.');
 end
 
-if length(T_inlet) ~= 1 && length(T_inlet) ~= 12
+if length(inlet_temperature) ~= 1 && length(inlet_temperature) ~= 12
     error('Inlet temperature must be scalar or vector with 12 elements.');
 end
 
-if any(T_inlet < 6) || any(T_inlet > 100)
-    warning('Inlet temperature should be 6 <= T_inlet <= 100.');
+if any(inlet_temperature < 6) || any(inlet_temperature > 100)
+    warning('Inlet temperature should be 6 <= inlet_temperature <= 100.');
 end
 
-if r_buffer < 0
+if buffer_radius < 0
     error('Borehole buffer radius must be positive.');
 end
 
-if r_buffer < 0.1 || r_buffer > 1.0
-    warning('Borehole buffer radius should be 0.1 <= r_buffer <= 1.0.');
+if buffer_radius < 0.1 || buffer_radius > 1.0
+    warning('Borehole buffer radius should be 0.1 <= buffer_radius <= 1.0.');
 end
 
 if buffer_width <= 0
@@ -103,18 +105,18 @@ for i = 1:length(borehole_tilt)
 end
 
 fprintf(1, 'init_model: sector_angle = %f deg.\n', sector_angle);
-fprintf(1, 'init_model: d_borehole = %f mm.\n', d_borehole);
-fprintf(1, 'init_model: L_borehole = %f m.\n', L_borehole);
+fprintf(1, 'init_model: borehole_diameter = %f mm.\n', borehole_diameter);
+fprintf(1, 'init_model: borehole_length = %f m.\n', borehole_length);
 fprintf(1, 'init_model: borehole_offset = %f m.\n', borehole_offset);
-fprintf(1, 'init_model: r_buffer = %f m.\n', r_buffer);
+fprintf(1, 'init_model: buffer_radius = %f m.\n', buffer_radius);
 fprintf(1, 'init_model: buffer_width = %f m.\n', buffer_width);
 fprintf(1, 'init_model: flow_rate = %f m^3/s.\n', flow_rate);
 
-if length(T_inlet) == 1
-    fprintf(1, 'init_model: T_inlet = %f degC.\n', T_inlet);
+if length(inlet_temperature) == 1
+    fprintf(1, 'init_model: inlet_temperature = %f degC.\n', inlet_temperature);
 else
     for i = 1:12
-        fprintf(1, 'init_model: T_inlet(%d) = %f degC.\n', i, T_inlet(i));
+        fprintf(1, 'init_model: inlet_temperature(%d) = %f degC.\n', i, inlet_temperature(i));
     end
 end
 
@@ -133,9 +135,9 @@ import com.comsol.model.util.*
 
 fprintf(1, 'init_model: Creating new model... ');
 
-model = ModelUtil.create('Sector Model 3D');
+model = ModelUtil.create('Sector Model');
 
-model.label('sector_model_3d');
+model.label('sector_model');
 
 component = model.component.create('component', true);
 
@@ -164,11 +166,11 @@ parameters.set('q_geothermal', '40[mW/m^2]');
 parameters.set('T_surface', '2.3[degC]');
 parameters.set('k_large', '1000[W/(m*K)]');
 parameters.set('buffer_width', sprintf('%f[m]', buffer_width));
-parameters.set('r_buffer', sprintf('%f[m]', r_buffer));
+parameters.set('buffer_radius', sprintf('%f[m]', buffer_radius));
 parameters.set('borehole_offset', sprintf('%f[m]', borehole_offset));
 
-if length(T_inlet) == 1
-    parameters.set('T_inlet', sprintf('%f[degC]', T_inlet));
+if length(inlet_temperature) == 1
+    parameters.set('inlet_temperature', sprintf('%f[degC]', inlet_temperature));
 end
 
 % -------------------------------------------------------------------------
@@ -177,9 +179,9 @@ end
 
 parameters = model.param.group.create('borehole_parameters');
 parameters.label('Borehole Parameters');
-parameters.set('L_borehole', sprintf('%f[m]', L_borehole));
-parameters.set('d_borehole', sprintf('%f[mm]', d_borehole));
-parameters.set('r_borehole', 'd_borehole/2');
+parameters.set('borehole_length', sprintf('%f[m]', borehole_length));
+parameters.set('borehole_diameter', sprintf('%f[mm]', borehole_diameter));
+parameters.set('r_borehole', 'borehole_diameter/2');
 
 % -------------------------------------------------------------------------
 % Sets up bedrock parameters
@@ -277,19 +279,19 @@ fprintf(1, 'init_model: Creating functions... ');
 % Creates inlet temperature function
 % -------------------------------------------------------------------------
 
-if length(T_inlet) == 12
+if length(inlet_temperature) == 12
     
     pieces = cell(12, 3);
 
     for i = 1:12
         pieces{i, 1} = sprintf('%d/12', i-1);
         pieces{i, 2} = sprintf('%d/12', i);
-        pieces{i, 3} = sprintf('%f', T_inlet(i));
+        pieces{i, 3} = sprintf('%f', inlet_temperature(i));
     end
     
     func = model.func.create('inlet_temperature_function', 'Piecewise');
     func.label('Inlet Temperature Function');
-    func.set('funcname', 'T_inlet');
+    func.set('funcname', 'inlet_temperature');
     func.set('arg', 't');
     func.set('extrap', 'periodic');
     func.set('pieces', pieces);
@@ -343,14 +345,14 @@ for i = 1:length(borehole_tilt)
     theta = borehole_tilt(i) * pi / 180;
     borehole_axis = [cos(theta), 0, sin(theta)];
     borehole_collar = borehole_offset * borehole_axis;
-    borehole_footer = (borehole_offset + L_borehole) * borehole_axis;
+    borehole_footer = (borehole_offset + borehole_length) * borehole_axis;
     if borehole_tilt(i) == -90
         planes = {CutPlane(0), CutPlane(180-0.5*sector_angle)};
-        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, d_borehole, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', r_buffer);
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, borehole_diameter, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', buffer_radius);
         bhe_factors(i) = 1;
     else
         planes = {CutPlane(0)};
-        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, d_borehole, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', r_buffer);
+        bhe_array{i} = CoaxialBoreholeHeatExchanger(borehole_collar, borehole_footer, borehole_diameter, pipe, flow_rate, fluid, 'cutplanes', planes, 'bufferradius', buffer_radius);
         bhe_factors(i) = 360 / sector_angle;
     end
 end
@@ -369,21 +371,21 @@ end
 
 work_plane = geometry.create(sprintf('work_plane%d', 1+3*length(borehole_tilt)), 'WorkPlane');
 work_plane.set('unite', true);
-work_plane.set('quickz', '-L_borehole-buffer_width');
+work_plane.set('quickz', '-borehole_length-buffer_width');
 
 circle = work_plane.geom.create('sector_circle', 'Circle');
 circle.set('angle', '0.5*sector_angle');
-circle.set('r', 'L_borehole+buffer_width');
+circle.set('r', 'borehole_length+buffer_width');
 
 extrusion = geometry.feature.create(sprintf('extrusion%d', 1+3*length(borehole_tilt)), 'Extrude');
 extrusion.set('workplane', work_plane.tag);
 extrusion.selection('input').set(char(work_plane.tag));
-extrusion.setIndex('distance', 'L_borehole+2*buffer_width', 0);
+extrusion.setIndex('distance', 'borehole_length+2*buffer_width', 0);
 
 selection = geometry.create('surface_selection', 'CylinderSelection');
 selection.label('Surface Selection');
 selection.set('entitydim', 2);
-selection.set('r', 'L_borehole+buffer_width+1[mm]');
+selection.set('r', 'borehole_length+buffer_width+1[mm]');
 selection.set('top', '+1[mm]');
 selection.set('bottom', '-1[mm]');
 selection.set('pos', {'0' '0' 'buffer_width'});
@@ -392,10 +394,10 @@ selection.set('condition', 'allvertices');
 selection = geometry.create('bottom_selection', 'CylinderSelection');
 selection.label('Bottom Selection');
 selection.set('entitydim', 2);
-selection.set('r', 'L_borehole+buffer_width+1[mm]');
+selection.set('r', 'borehole_length+buffer_width+1[mm]');
 selection.set('top', '+1[mm]');
 selection.set('bottom', '-1[mm]');
-selection.set('pos', {'0' '0' '-L_borehole-buffer_width'});
+selection.set('pos', {'0' '0' '-borehole_length-buffer_width'});
 selection.set('condition', 'allvertices');
 
 % -------------------------------------------------------------------------
@@ -499,7 +501,7 @@ for i = 1:length(borehole_tilt)
 end
 
 for i = 1:length(borehole_tilt)
-    bhe_array{i}.createBoundaryConditions(geometry, physics, 'T_inlet');
+    bhe_array{i}.createBoundaryConditions(geometry, physics, 'inlet_temperature');
 end
 
 fprintf(1, 'Done.\n');
@@ -545,7 +547,7 @@ fprintf(1, 'init_model: Creating events... ');
 
 month_names = {'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August','September', 'October', 'November', 'December'};
 
-if length(T_inlet) == 12
+if length(inlet_temperature) == 12
 
     events = component.physics.create('ev', 'Events', 'geometry');
     
@@ -588,7 +590,7 @@ model.study('std1').feature('time').set('tlist', '0 100');
 model.study('std1').feature('time').set('usertol', true);
 model.study('std1').feature('time').set('rtol', '1e-2');
 
-if length(T_inlet) == 12
+if length(inlet_temperature) == 12
     model.study('std1').feature('time').activate('ev', true);
 end
 
@@ -677,10 +679,10 @@ plot_group.set('ylabelactive', false);
 global_plot1 = plot_group.create('global_plot1', 'Global');
 global_plot2 = plot_group.create('global_plot2', 'Global');
 
-if length(T_inlet) == 1
-    global_plot1.set('expr', {'T_inlet'});
+if length(inlet_temperature) == 1
+    global_plot1.set('expr', {'inlet_temperature'});
 else
-    global_plot1.set('expr', {'T_inlet(t)'});
+    global_plot1.set('expr', {'inlet_temperature(t)'});
 end
 
 global_plot1.set('descr', {'Inlet Temperature'});

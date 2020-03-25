@@ -35,16 +35,12 @@ classdef CoaxialBoreholeHeatExchanger
             
             persistent id
             
-            if boreholeFooter(3) > boreholeCollar(3)
-                error('Borehole cannot be inclined upwards.');
-            end
-            
-            if (boreholeFooter(1) == boreholeCollar(1)) && (boreholeFooter(2) == boreholeCollar(2)) && (boreholeFooter(3) == boreholeCollar(3))
-                error('Borehole must have positive length.');
-            end
-            
             if boreholeDiameter <= 0
                 error('Borehole must have positive diameter.');
+            end
+            
+            if coaxialPipe.outerWallDiameter >= boreholeDiameter
+                error('Borehole diameter must be larger than outer pipe diameter.');
             end
             
             if flowRate <= 0
@@ -69,13 +65,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             obj.boreholeRadius = 0.5 * boreholeDiameter;
             
-            if obj.bufferRadius <= obj.boreholeRadius
-                error('Buffer radius must be larger than borehole radius.');
-            end
-            
             % Handles variable arguments in.
             
-            obj.cutPlanes = [];
+            obj.cutPlanes = {};
             obj.bufferRadius = 1.0;
             
             for i = 1:2:numel(varargin)
@@ -88,8 +80,8 @@ classdef CoaxialBoreholeHeatExchanger
                 end
             end
             
-            if obj.bufferRadius <= 0
-                error('Buffer must have positive radius.');
+            if obj.bufferRadius <= obj.boreholeRadius
+                error('Buffer radius must be larger than borehole radius.');
             end
             
             % Calculates borehole axis.
@@ -106,6 +98,10 @@ classdef CoaxialBoreholeHeatExchanger
             
             if boreholeAzimuth < 0
                 boreholeAzimuth = boreholeAzimuth + 360;
+            end
+            
+            if boreholeTilt > 0
+                error('Borehole must be downwards directed.');
             end
             
             theta = pi * boreholeTilt / 180;

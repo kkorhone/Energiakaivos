@@ -1,4 +1,6 @@
-function model = init_sector_model(borehole_tilt, sector_angle, varargin)
+% This function does not use the CoaxialBoreholeHeatExchanger class.
+
+function model = init_sector_model_v1(borehole_tilt, sector_angle, varargin)
 
 % =========================================================================
 % Checks input parameters
@@ -881,8 +883,8 @@ size.set('hauto', 2);
 % hauto 2 = extra fine
 % hauto 1 = extremenly fine
 
-%mesh.run('cap_cylinders_mesh');
-%mesh.run('bedrock_mesh');
+% mesh.run('cap_cylinders_mesh');
+% mesh.run('bedrock_mesh');
 
 % mesh.run();
 

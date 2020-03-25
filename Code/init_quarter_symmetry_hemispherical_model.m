@@ -1,29 +1,32 @@
 % This function uses the CoaxialBoreholeHeatExchanger class.
 
-function model = init_quarter_symmetry_hemispherical_model(file_name)
+function model = init_quarter_symmetry_hemispherical_model(file_name, params)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
 % =========================================================================
-% Sets up parameters.
+% Checks the sanity of the parameters.
 % =========================================================================
 
-buffer_width = 400;
-buffer_radius = 1.0;
-borehole_diameter = 76e-3;
+if params.q_geothermal <= 0
+    error('Geothermal heat flux density must be positive.');
+end
 
-flow_rate = 0.6e-3;
+if params.k_rock <= 0
+    error('Bedrock thermal conductivity must be positive.');
+end
 
-T_inlet = 2;
+if params.Cp_rock <= 0
+    error('Dedrock specific heat capacity must be positive.');
+end
 
-q_geothermal = 40e-3;
-T_surface = 3;
-k_rock = 3;
-Cp_rock = 750;
-rho_rock = 2700;
+if params.rho_rock <= 0
+    error('Bedrock density must be positive.');
+end
 
-% T_charge = 30;
-% Q_discharge = 1e6;
+if params.buffer_width <= 0
+    error('Buffer width must be positive.');
+end
 
 % =========================================================================
 % Constructs the BHE field.
@@ -39,22 +42,22 @@ bhe_collars = field_config(:, 1:3);
 bhe_footers = field_config(:, 4:6);
 bhe_factors = field_config(:, 7);
 
-fprintf(1, '*** Read %d BHEs from ''%s''.\n', length(bhe_factors), file_name);
-fprintf(1, '*** sum(bhe_factors)=%d\n', sum(bhe_factors));
+fprintf(1, '>> Read %d BHEs from ''%s''.\n', length(bhe_factors), file_name);
+fprintf(1, '>> sum(bhe_factors)=%d\n', sum(bhe_factors));
 
 % -------------------------------------------------------------------------
 % Calculates the spatial extent of the BHE field.
 % -------------------------------------------------------------------------
 
-x_max = max(max(bhe_collars(:,1)), max(bhe_footers(:,1)));
-y_max = max(max(bhe_collars(:,2)), max(bhe_footers(:,2)));
+x_max = max(max(bhe_collars(:, 1)), max(bhe_footers(:, 1)));
+y_max = max(max(bhe_collars(:, 2)), max(bhe_footers(:, 2)));
 
-z_min = min(min(bhe_collars(:,3)), min(bhe_footers(:,3)));
-z_max = max(max(bhe_collars(:,3)), max(bhe_footers(:,3)));
+z_min = min(min(bhe_collars(:, 3)), min(bhe_footers(:, 3)));
+z_max = max(max(bhe_collars(:, 3)), max(bhe_footers(:, 3)));
 
-fprintf(1, '*** True spatial extent:\n');
-fprintf(1, '*** x_max=%.1f y_max=%.1f\n', x_max, y_max);
-fprintf(1, '*** z_min=%.1f z_max=%.1f\n', z_min, z_max);
+fprintf(1, '>> True spatial extent:\n');
+fprintf(1, '>> x_max=%.1f y_max=%.1f\n', x_max, y_max);
+fprintf(1, '>> z_min=%.1f z_max=%.1f\n', z_min, z_max);
 
 x_max = ceil(x_max / 100) * 100;
 y_max = ceil(y_max / 100) * 100;
@@ -62,29 +65,33 @@ y_max = ceil(y_max / 100) * 100;
 z_min = floor(z_min / 100) * 100;
 z_max = ceil(z_max / 100) * 100;
 
-x_max = x_max + buffer_width;
-y_max = y_max + buffer_width;
+x_max = x_max + params.buffer_width;
+y_max = y_max + params.buffer_width;
 
-z_min = z_min - buffer_width;
-z_max = min(0, z_max+buffer_width);
+z_min = z_min - params.buffer_width;
+z_max = min(0, z_max+params.buffer_width);
 
-fprintf(1, '*** Extended spatial extent:\n');
-fprintf(1, '*** x_max=%.1f y_max=%.1f\n', x_max, y_max);
-fprintf(1, '*** z_min=%.1f z_max=%.1f\n', z_min, z_max);
+fprintf(1, '>> Extended spatial extent:\n');
+fprintf(1, '>> x_max=%.1f y_max=%.1f\n', x_max, y_max);
+fprintf(1, '>> z_min=%.1f z_max=%.1f\n', z_min, z_max);
 
 % -------------------------------------------------------------------------
 % Constructs the BHEs.
 % -------------------------------------------------------------------------
 
-working_fluid = HeatCarrierFluid(0, 20);
-coaxial_pipe = CoaxialPipe(50e-3, 32e-3, 0.1, 1900, 900);
+working_fluid = HeatCarrierFluid(params.c_fluid, params.T_fluid);
+coaxial_pipe = CoaxialPipe(params.d_outer, params.d_inner, params.k_pipe, params.Cp_pipe, params.rho_pipe);
 
-bhe_array = {};
+bhe_array = cell(1, length(bhe_factors));
 
 for i = 1:length(bhe_factors)
 
     bhe_axis = bhe_footers(i,:) - bhe_collars(i,:);
     bhe_axis = bhe_axis / sqrt(dot(bhe_axis, bhe_axis));
+    
+    if bhe_axis(:, 3) > 0
+        error('Upward borehole.');
+    end
     
     is_vertical = abs(dot([0, 0, -1], bhe_axis) - 1) < 1e-6;
     
@@ -94,8 +101,8 @@ for i = 1:length(bhe_factors)
         
         if is_vertical
             cut_planes = {CutPlane(0), CutPlane(90)};
-            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
-            fprintf(1, '*** Vertical BHE at origin (BHE factor = %d).\n', bhe_factors(i));
+            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), params.d_borehole, coaxial_pipe, params.flow_rate, working_fluid, 'bufferradius', params.r_buffer, 'cutplanes', cut_planes);
+            fprintf(1, '>>> Vertical BHE at origin (BHE factor = %d).\n', bhe_factors(i));
         else
             error('Inclined BHE at origin.');
         end
@@ -108,8 +115,8 @@ for i = 1:length(bhe_factors)
             error('Vertical BHE on x axis.');
         else
             cut_planes = {CutPlane(0)};
-            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
-            fprintf(1, '*** Inclined BHE on x axis (BHE factor = %d).\n', bhe_factors(i));
+            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), params.d_borehole, coaxial_pipe, params.flow_rate, working_fluid, 'bufferradius', params.r_buffer, 'cutplanes', cut_planes);
+            fprintf(1, '>>> Inclined BHE on x axis (BHE factor = %d).\n', bhe_factors(i));
         end
         
     elseif abs(bhe_collars(i, 1)) < 1e-6
@@ -120,8 +127,8 @@ for i = 1:length(bhe_factors)
             error('Vertical BHE on y axis.');
         else
             cut_planes = {CutPlane(180)};
-            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius, 'cutplanes', cut_planes);
-            fprintf(1, '*** Inclined BHE on y axis (BHE factor = %d).\n', bhe_factors(i));
+            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), params.d_borehole, coaxial_pipe, params.flow_rate, working_fluid, 'bufferradius', params.r_buffer, 'cutplanes', cut_planes);
+            fprintf(1, '>>> Inclined BHE on y axis (BHE factor = %d).\n', bhe_factors(i));
         end
         
     else
@@ -131,13 +138,13 @@ for i = 1:length(bhe_factors)
         if is_vertical
             error('Vertical BHE in first quadrant.');
         else
-            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), borehole_diameter, coaxial_pipe, flow_rate, working_fluid, 'bufferradius', buffer_radius);
-            fprintf(1, '*** Inclined BHE in first quadrant (BHE factor = %d).\n', bhe_factors(i));
+            bhe_array{i} = CoaxialBoreholeHeatExchanger(bhe_collars(i,:), bhe_footers(i,:), params.d_borehole, coaxial_pipe, params.flow_rate, working_fluid, 'bufferradius', params.r_buffer);
+            fprintf(1, '>>> Inclined BHE in first quadrant (BHE factor = %d).\n', bhe_factors(i));
         end
     end
 end
 
-fprintf(1, '*** length(bhe_array)=%d\n', length(bhe_array));
+fprintf(1, '>>> length(bhe_array)=%d\n', length(bhe_array));
 
 close all
 
@@ -152,7 +159,7 @@ pause(1)
 import com.comsol.model.*
 import com.comsol.model.util.*
 
-fprintf(1, '*** Creating a new model... ');
+fprintf(1, '>>> Creating a new model... ');
 
 model = ModelUtil.create('Quarter Symmetry Hemispherical Model');
 
@@ -170,7 +177,7 @@ fprintf(1, 'Done.\n');
 % Creates functions.
 % =========================================================================
 
-fprintf(1, '*** Sets up the view... ');
+fprintf(1, '>>> Creating functions... ');
 
 comp.view('view1').set('renderwireframe', true);
 comp.view('view1').camera.set('manualgrid', true);
@@ -184,9 +191,9 @@ fprintf(1, 'Done.\n');
 % Creates functions.
 % =========================================================================
 
-fprintf(1, '*** Creating functions... ');
+fprintf(1, '>>> Creating functions... ');
 
-expr = sprintf('%f[degC]-%f[W/m^2]/%f[W/(m*K)]*z', T_surface, q_geothermal, k_rock);
+expr = sprintf('%f[degC]-%f[W/m^2]/%f[W/(m*K)]*z', params.T_surface, params.q_geothermal, params.k_rock);
 
 func = model.func.create('initial_temperature_function', 'Analytic');
 func.label('Initial Temperature Function');
@@ -202,7 +209,7 @@ fprintf(1, 'Done.\n');
 % Creates geometry.
 % =========================================================================
 
-fprintf(1, '*** Creating geometry... ');
+fprintf(1, '>>> Creating geometry... ');
 
 % -------------------------------------------------------------------------
 % Creates BHE geometries.
@@ -279,7 +286,7 @@ fprintf(1, 'Done.\n');
 % Creates mesh.
 % =========================================================================
 
-fprintf(1, '*** Creating mesh... ');
+fprintf(1, '>>> Creating mesh... ');
 
 % -------------------------------------------------------------------------
 % Creates BHE meshes.
@@ -310,7 +317,7 @@ fprintf(1, 'Done.\n');
 % Creates operators.
 % =========================================================================
 
-fprintf(1, '*** Creating operators... ');
+fprintf(1, '>>> Creating operators... ');
 
 for i = 1:length(bhe_array)
     bhe_array{i}.createOperators(comp, geom);
@@ -322,7 +329,7 @@ fprintf(1, 'Done.\n');
 % Creates physics.
 % =========================================================================
 
-fprintf(1, '*** Creating physics... ');
+fprintf(1, '>>> Creating physics... ');
 
 % -------------------------------------------------------------------------
 % Creates a physics node.
@@ -345,14 +352,14 @@ phys.feature('init1').set('Tinit', 'T_initial(z)');
 phys.feature('init1').label('Initial Values');
 
 phys.feature('solid1').set('k_mat', 'userdef');
-phys.feature('solid1').set('k', {sprintf('%f',k_rock); '0'; '0'; '0'; sprintf('%f',k_rock); '0'; '0'; '0'; sprintf('%f',k_rock)});
+phys.feature('solid1').set('k', {sprintf('%f',params.k_rock); '0'; '0'; '0'; sprintf('%f',params.k_rock); '0'; '0'; '0'; sprintf('%f',params.k_rock)});
 phys.feature('solid1').label('Bedrock Solid');
 
 phys.feature('solid1').set('rho_mat', 'userdef');
-phys.feature('solid1').set('rho', rho_rock);
+phys.feature('solid1').set('rho', params.rho_rock);
 
 phys.feature('solid1').set('Cp_mat', 'userdef');
-phys.feature('solid1').set('Cp', Cp_rock);
+phys.feature('solid1').set('Cp', params.Cp_rock);
 
 % -------------------------------------------------------------------------
 % Creates boundary conditions for the bedrock physics.
@@ -362,18 +369,18 @@ if z_max == 0
     surface_temperature_bc = phys.create('surface_temperature_bc', 'TemperatureBoundary', 2);
     surface_temperature_bc.label('Ground Surface Temperature BC');
     surface_temperature_bc.selection.named(sprintf('%s_surface_boundary_selection', geom.tag));
-    surface_temperature_bc.set('T0', T_surface);
+    surface_temperature_bc.set('T0', sprintf('%f[degC]', params.T_surface));
 else
     surface_heat_flux_bc = phys.create('surface_heat_flux_bc', 'HeatFluxBoundary', 2);
     surface_heat_flux_bc.label('Ground Surface Heat Flux BC');
     surface_heat_flux_bc.selection.named(sprintf('%s_surface_boundary_selection', geom.tag));
-    surface_heat_flux_bc.set('q0', -q_geothermal);
+    surface_heat_flux_bc.set('q0', -params.q_geothermal);
 end
 
 bottom_heat_flux_bc = phys.create('bottom_heat_flux_bc', 'HeatFluxBoundary', 2);
 bottom_heat_flux_bc.label('Geothermal Heat Flux BC');
 bottom_heat_flux_bc.selection.named(sprintf('%s_bottom_boundary_selection', geom.tag));
-bottom_heat_flux_bc.set('q0', q_geothermal);
+bottom_heat_flux_bc.set('q0', params.q_geothermal);
 
 % -------------------------------------------------------------------------
 % Adds the BHE physics to the physics node.
@@ -389,7 +396,7 @@ end
 
 for i = 1:length(bhe_array)
     %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
-    bhe_array{i}.createBoundaryConditions(geom, phys, sprintf('%f[degC]', T_inlet));
+    bhe_array{i}.createBoundaryConditions(geom, phys, sprintf('%f[degC]', params.T_inlet));
 end
 
 fprintf(1, 'Done.\n');
@@ -398,7 +405,7 @@ fprintf(1, 'Done.\n');
 % Creates component variables.
 % =========================================================================
 
-fprintf(1, '*** Creating component variables... ');
+fprintf(1, '>>> Creating component variables... ');
 
 vars = comp.variable.create('component_variables');
 vars.label('Component Variables');
@@ -456,7 +463,7 @@ fprintf(1, 'Done.\n');
 % Creates study and solution.
 % =========================================================================
 
-fprintf(1, '*** Creating study and solution... ');
+fprintf(1, '>>> Creating study and solution... ');
 
 model.study.create('std1');
 model.study('std1').create('time', 'Transient');
@@ -474,15 +481,15 @@ model.sol('sol1').feature('t1').feature.remove('dDef');
 
 model.study('std1').setGenPlots(false);
 model.study('std1').feature('time').set('tunit', 'a');
-model.study('std1').feature('time').set('tlist', '0 100');
+model.study('std1').feature('time').set('tlist', '0 1e6');
 model.study('std1').feature('time').set('usertol', true);
-model.study('std1').feature('time').set('rtol', '1e-2');
+model.study('std1').feature('time').set('rtol', '1e-3');
 
 model.sol('sol1').attach('std1');
-model.sol('sol1').feature('v1').set('clist', {'0 100' '1e-6[a]'});
+model.sol('sol1').feature('v1').set('clist', {'0 1e6' '1e-6[a]'});
 model.sol('sol1').feature('t1').set('tunit', 'a');
-model.sol('sol1').feature('t1').set('tlist', '0 100');
-model.sol('sol1').feature('t1').set('rtol', '1e-2');
+model.sol('sol1').feature('t1').set('tlist', '0 1e6');
+model.sol('sol1').feature('t1').set('rtol', '1e-3');
 model.sol('sol1').feature('t1').set('maxorder', 2);
 model.sol('sol1').feature('t1').set('estrat', 'exclude');
 model.sol('sol1').feature('t1').set('plot', true);
