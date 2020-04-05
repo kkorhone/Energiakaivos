@@ -241,7 +241,7 @@ def make_test_field(borehole_tilts, sector_angle):
     show()
 
 borehole_offset = 30
-borehole_length = 300
+borehole_length = 600
 field_depth = 1440
 
 #make_ico_field(10)

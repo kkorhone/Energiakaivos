@@ -5,6 +5,10 @@ close all
 
 addpath E:\Work\Energiakaivos\Code
 
+import com.comsol.model.util.*
+
+ModelUtil.showProgress(true);
+
 % Bedrock parameters.
 params.T_surface = 3;
 params.q_geothermal = 38e-3;
@@ -13,7 +17,7 @@ params.Cp_rock = 682;
 params.rho_rock = 2794;
 
 % Borehole field exchanger parameters.
-params.T_inlet = 2;
+params.Q_discharging = 2e6;
 params.d_borehole = 76e-3;
 params.flow_rate = 0.6e-3;
 
@@ -30,16 +34,16 @@ params.T_fluid = 20;
 
 % Model parameters.
 params.r_buffer = 1.0;
-params.buffer_width = 3000;
+params.buffer_width = 400;
 
-model = init_quarter_symmetry_hemispherical_model('ico_field_136.txt', params);
+model = init_quarter_symmetry_hemispherical_stress('ico_field_136_500m.txt', params);
 
-mphsave(model, 'simulation1a.mph');
-return
+mphsave(model, 'stress_500m.mph');
+
 model.mesh('mesh').run();
 
-mphsave(model, 'simulation1a_meshed.mph');
+mphsave(model, 'stress_500m_meshed.mph');
 
-model.sol('sol1').runAll();
-
-mphsave(model, 'simulation1a_solved.mph');
+% model.sol('sol1').runAll();
+% 
+% mphsave(model, 'stress_500m_solved.mph');

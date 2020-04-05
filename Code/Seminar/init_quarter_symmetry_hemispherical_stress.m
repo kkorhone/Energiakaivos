@@ -1,6 +1,6 @@
 % This function uses the CoaxialBoreholeHeatExchanger class.
 
-function model = init_quarter_symmetry_hemispherical_model(file_name, params)
+function model = init_quarter_symmetry_hemispherical_stress(file_name, params)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
@@ -55,6 +55,9 @@ y_max = max(max(bhe_collars(:, 2)), max(bhe_footers(:, 2)));
 z_min = min(min(bhe_collars(:, 3)), min(bhe_footers(:, 3)));
 z_max = max(max(bhe_collars(:, 3)), max(bhe_footers(:, 3)));
 
+z_field = max(max(bhe_collars(:, 3)), max(bhe_footers(:, 3)));
+r_field = max(sqrt(bhe_footers(:,1).^2+bhe_footers(:,2).^2+(bhe_footers(:,3)-z_field).^2));
+
 fprintf(1, '>> True spatial extent:\n');
 fprintf(1, '>> x_max=%.1f y_max=%.1f\n', x_max, y_max);
 fprintf(1, '>> z_min=%.1f z_max=%.1f\n', z_min, z_max);
@@ -81,6 +84,8 @@ fprintf(1, '>> z_min=%.1f z_max=%.1f\n', z_min, z_max);
 
 working_fluid = HeatCarrierFluid(params.c_fluid, params.T_fluid);
 coaxial_pipe = CoaxialPipe(params.d_outer, params.d_inner, params.k_pipe, params.Cp_pipe, params.rho_pipe);
+
+total_flow_rate = 0;
 
 bhe_array = cell(1, length(bhe_factors));
 
@@ -142,9 +147,13 @@ for i = 1:length(bhe_factors)
             fprintf(1, '>>> Inclined BHE in first quadrant (BHE factor = %d).\n', bhe_factors(i));
         end
     end
+
+    total_flow_rate = total_flow_rate + bhe_factors(i) * bhe_array{i}.flowRate;
+
 end
 
 fprintf(1, '>>> length(bhe_array)=%d\n', length(bhe_array));
+fprintf(1, '>>> total_flow_rate=%f\n', total_flow_rate);
 
 close all
 
@@ -172,6 +181,12 @@ geom = comp.geom.create('geometry', 3);
 mesh = comp.mesh.create('mesh');
 
 fprintf(1, 'Done.\n');
+
+% =========================================================================
+% Sets up parameters.
+% =========================================================================
+
+model.param.set('delta_T', sprintf('%f[W]/(%f[kg/m^3]*%f[J/(kg*K)]*%f[m^3/s])', params.Q_discharging, working_fluid.density, working_fluid.specificHeatCapacity, total_flow_rate));
 
 % =========================================================================
 % Sets up view.
@@ -242,16 +257,58 @@ bedrock_extrude.set('workplane', bedrock_work_plane.tag);
 bedrock_extrude.selection('input').set({char(bedrock_work_plane.tag)});
 bedrock_extrude.setIndex('distance', z_max-z_min, 0);
 
+% -------------------------------------------------------------------------
+% Creates a field encompassing surface.
+% -------------------------------------------------------------------------
+
+dr_field = 20;
+
+work_plane = geom.create('work_plane', 'WorkPlane');
+work_plane.set('quickplane', 'xz');
+work_plane.set('unite', true);
+
+circle = work_plane.geom.create('circle', 'Circle');
+circle.set('pos', [0 z_field]);
+circle.set('rot', -90);
+circle.set('r', r_field+dr_field);
+circle.set('angle', 90);
+
+rectangle = work_plane.geom.create('rectangle', 'Rectangle');
+rectangle.set('pos', [0 z_field]);
+rectangle.set('size', [r_field+dr_field dr_field]);
+
+union = work_plane.geom.create('union', 'Union');
+union.set('intbnd', false);
+union.selection('input').set({char(circle.tag) char(rectangle.tag)});
+
+convert = work_plane.geom.create('convert', 'ConvertToCurve');
+convert.selection('input').set({char(union.tag)});
+
+revolve = geom.create('revolve', 'Revolve');
+revolve.set('angle1', 0);
+revolve.set('angle2', 90);
+revolve.set('selresult', true);
+revolve.set('selresultshow', 'bnd');
+revolve.selection('input').set({char(work_plane.tag)});
+
+fprintf(1, 'Done.\n');
+
 % =========================================================================
 % Creates selections.
 % =========================================================================
+
+fprintf(1, '>>> Creating selections... ');
 
 % -------------------------------------------------------------------------
 % Creates BHE selections.
 % -------------------------------------------------------------------------
 
+difference_tags = {};
+
 for i = 1:length(bhe_array)
-    bhe_array{i}.createSelections(geom);
+    selection_tags = bhe_array{i}.createSelections(geom);
+    difference_tags{end+1} = selection_tags{5};
+    difference_tags{end+1} = selection_tags{9};
 end
 
 % -------------------------------------------------------------------------
@@ -280,6 +337,45 @@ bottom_boundary_selection.set('bottom', z_min-0.001);
 bottom_boundary_selection.set('pos', {'0' '0' '0'});
 bottom_boundary_selection.set('condition', 'allvertices');
 
+% -------------------------------------------------------------------------
+% Creates selections for the field encompassing surface.
+% -------------------------------------------------------------------------
+
+above_surface_selection = geom.create('above_surface_selection', 'CylinderSelection');
+above_surface_selection.label('Above Surface Selection');
+above_surface_selection.set('entitydim', 2);
+above_surface_selection.set('r', r_field+dr_field+1);
+above_surface_selection.set('top', dr_field+0.001);
+above_surface_selection.set('bottom', dr_field-0.001);
+above_surface_selection.set('pos', {'0' '0' num2str(z_field)});
+above_surface_selection.set('condition', 'allvertices');
+
+below_surface_selection = geom.create('below_surface_selection', 'DifferenceSelection');
+below_surface_selection.label('Below Surface Selection');
+below_surface_selection.set('entitydim', 2);
+below_surface_selection.set('add', {char(revolve.tag)});
+below_surface_selection.set('subtract', {char(above_surface_selection.tag)});
+
+% Runs the geometry.
+
+geom.run('fin');
+
+ball_selection = geom.create('ball_selection', 'BallSelection');
+ball_selection.label('Ball Selection');
+ball_selection.set('posz', z_field);
+ball_selection.set('r', r_field+dr_field+1);
+ball_selection.set('condition', 'allvertices');
+
+geom.run(ball_selection.tag);
+
+field_volume_selection = geom.create('field_volume_selection', 'DifferenceSelection');
+field_volume_selection.label('Field Volume Selection');
+field_volume_selection.set('entitydim', 3);
+field_volume_selection.set('add', {char(ball_selection.tag)});
+field_volume_selection.set('subtract', difference_tags);
+
+geom.run(field_volume_selection.tag);
+
 % Reruns the geometry.
 
 geom.run('fin');
@@ -299,6 +395,18 @@ fprintf(1, '>>> Creating mesh... ');
 for i = 1:length(bhe_array)
     bhe_array{i}.createMesh(geom, mesh);
 end
+
+% -------------------------------------------------------------------------
+% Creates bedrock mesh.
+% -------------------------------------------------------------------------
+
+field_volume_mesh = mesh.create('field_volume_mesh', 'FreeTet');
+field_volume_mesh.selection.geom(geom.tag, 3);
+%field_volume_mesh.selection.name(sprintf('%s_%s', geom.tag, field_volume_selection.tag));
+field_volume_mesh.selection.named('geometry_field_volume_selection');
+
+field_volume_mesh_size = field_volume_mesh.create('field_volume_mesh_size', 'Size');
+field_volume_mesh_size.set('hauto', 2);
 
 % -------------------------------------------------------------------------
 % Creates bedrock mesh.
@@ -327,6 +435,21 @@ for i = 1:length(bhe_array)
     bhe_array{i}.createOperators(comp, geom);
 end
 
+above_surface_intergation_operator = comp.cpl.create('above_surface_integration_operator', 'Integration');
+above_surface_intergation_operator.label('Above Surface Integration Operator');
+above_surface_intergation_operator.selection.geom(geom.tag, 2);
+above_surface_intergation_operator.selection.named(sprintf('%s_%s', geom.tag, above_surface_selection.tag));
+
+below_surface_intergation_operator = comp.cpl.create('below_surface_integration_operator', 'Integration');
+below_surface_intergation_operator.label('Below Surface Integration Operator');
+below_surface_intergation_operator.selection.geom(geom.tag, 2);
+below_surface_intergation_operator.selection.named(sprintf('%s_%s', geom.tag, below_surface_selection.tag));
+
+field_volume_average_operator = comp.cpl.create('field_volume_average_operator', 'Average');
+field_volume_average_operator.label('Field Volume Average Operator');
+field_volume_average_operator.selection.geom(geom.tag, 3);
+field_volume_average_operator.selection.named(sprintf('%s_%s', geom.tag, field_volume_selection.tag));
+
 fprintf(1, 'Done.\n');
 
 % =========================================================================
@@ -339,7 +462,7 @@ fprintf(1, '>>> Creating physics... ');
 % Creates a physics node.
 % -------------------------------------------------------------------------
 
-phys = comp.physics.create('heat_transfer_physics', 'HeatTransfer', geom.tag);
+phys = comp.physics.create('physics', 'HeatTransfer', geom.tag);
 
 phys.label('Heat Transfer Physics');
 %phys.name(phys.tag);
@@ -366,7 +489,7 @@ phys.feature('solid1').set('Cp_mat', 'userdef');
 phys.feature('solid1').set('Cp', params.Cp_rock);
 
 % -------------------------------------------------------------------------
-% Creates boundary conditions for the bedrock physics.
+ % Creates boundary conditions for the bedrock physics.
 % -------------------------------------------------------------------------
 
 if z_max == 0
@@ -399,8 +522,7 @@ end
 % -------------------------------------------------------------------------
 
 for i = 1:length(bhe_array)
-    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
-    bhe_array{i}.createBoundaryConditions(geom, phys, sprintf('%f[degC]', params.T_inlet));
+    bhe_array{i}.createBoundaryConditions(geom, phys, 'if((T_outlet-delta_T)>2[degC],T_outlet-delta_T,2[degC])');
 end
 
 fprintf(1, 'Done.\n');
@@ -449,17 +571,12 @@ end
 vars.set('Q_total', expr);
 
 % -------------------------------------------------------------------------
-% Creates temperature drop variable.
+% Creates ...
 % -------------------------------------------------------------------------
 
-% total_rate = 0;
-% 
-% for i = 1:numel(bhe_array)
-%     total_rate = total_rate + bhe_array{i}.flowRate;
-% end
-
-% % vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%d*%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, length(bhe_array), working_fluid.flowRate));
-% vars.set('delta_T', sprintf('Q_discharge/(%f[kg/m^3]*%f[J/(kg*K)]*(%f[m^3/s]))', working_fluid.density, working_fluid.specificHeatCapacity, total_rate));
+vars.set('Q_above', sprintf('4*above_surface_integration_operator(%s.ndflux)', phys.tag));
+vars.set('Q_below', sprintf('4*below_surface_integration_operator(%s.ndflux)', phys.tag));
+vars.set('T_field', 'field_volume_average_operator(T)');
 
 fprintf(1, 'Done.\n');
 
@@ -485,14 +602,14 @@ model.sol('sol1').feature('t1').feature.remove('dDef');
 
 model.study('std1').setGenPlots(false);
 model.study('std1').feature('time').set('tunit', 'a');
-model.study('std1').feature('time').set('tlist', '0 1e6');
+model.study('std1').feature('time').set('tlist', '0 100');
 model.study('std1').feature('time').set('usertol', true);
 model.study('std1').feature('time').set('rtol', '1e-3');
 
 model.sol('sol1').attach('std1');
-model.sol('sol1').feature('v1').set('clist', {'0 1e6' '1e-6[a]'});
+model.sol('sol1').feature('v1').set('clist', {'0 100' '1e-6[a]'});
 model.sol('sol1').feature('t1').set('tunit', 'a');
-model.sol('sol1').feature('t1').set('tlist', '0 1e6');
+model.sol('sol1').feature('t1').set('tlist', '0 100');
 model.sol('sol1').feature('t1').set('rtol', '1e-3');
 model.sol('sol1').feature('t1').set('maxorder', 2);
 model.sol('sol1').feature('t1').set('estrat', 'exclude');
@@ -514,13 +631,17 @@ model.sol('sol1').feature('t1').set('tout', 'tsteps');
 model.sol('sol1').feature('t1').set('initialstepbdfactive', true);
 model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 
-% model.study('std1').feature('time').activate('ev', true);
-
-% model.sol('sol1').runAll;
+% model.study('std1').feature('time').activate('events', true);
 
 fprintf(1, 'Done.\n');
 
 return
+
+% =========================================================================
+% Creates events.
+% =========================================================================
+
+fprintf(1, '>>> Creating events... ');
 
 events = comp.physics.create('events', 'Events', 'geometry');
 events.label('Charging and Discharging Events');
@@ -556,3 +677,5 @@ discharging_event.setIndex('reInitValue', 0, 0, 0);
 discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
 discharging_event.setIndex('reInitValue', 0, 1, 0);
 discharging_event.setIndex('reInitValue', 1, 1, 0);
+
+fprintf(1, 'Done.\n');

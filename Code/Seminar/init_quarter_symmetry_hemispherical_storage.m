@@ -1,6 +1,6 @@
 % This function uses the CoaxialBoreholeHeatExchanger class.
 
-function model = init_quarter_symmetry_hemispherical_model(file_name, params)
+function model = init_quarter_symmetry_hemispherical_storage(file_name, params)
 
 clear CoaxialBoreholeHeatExchanger % Resets the persistent id variable.
 
@@ -172,6 +172,13 @@ geom = comp.geom.create('geometry', 3);
 mesh = comp.mesh.create('mesh');
 
 fprintf(1, 'Done.\n');
+
+% =========================================================================
+% Sets up parameters.
+% =========================================================================
+
+model.param.set('T_charging', sprintf('%f[degC]', params.T_charging));
+model.param.set('T_discharging', sprintf('%f[degC]', params.T_discharging));
 
 % =========================================================================
 % Sets up view.
@@ -366,7 +373,7 @@ phys.feature('solid1').set('Cp_mat', 'userdef');
 phys.feature('solid1').set('Cp', params.Cp_rock);
 
 % -------------------------------------------------------------------------
-% Creates boundary conditions for the bedrock physics.
+ % Creates boundary conditions for the bedrock physics.
 % -------------------------------------------------------------------------
 
 if z_max == 0
@@ -399,8 +406,8 @@ end
 % -------------------------------------------------------------------------
 
 for i = 1:length(bhe_array)
-    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*T_charge+is_discharging*(T_outlet-delta_T)');
-    bhe_array{i}.createBoundaryConditions(geom, phys, sprintf('%f[degC]', params.T_inlet));
+    %bhe_array{i}.createBoundaryConditions(geom, phys, 'is_charging*(T_outlet-1.5[K])+is_discharging*(-3[K])');
+    bhe_array{i}.createBoundaryConditions(geom, phys, 'if(T_inlet>2[degC],T_inlet,2[degC])');
 end
 
 fprintf(1, 'Done.\n');
@@ -421,6 +428,8 @@ vars.label('Component Variables');
 for i = 1:length(bhe_array)
     bhe_array{i}.createVariables(vars, phys);
 end
+
+vars.set('T_inlet', 'is_charging*(T_outlet-1.5[K])+is_discharging*(-3[K])');
 
 % -------------------------------------------------------------------------
 % Creates borehole field outlet temperature variable.
@@ -485,15 +494,15 @@ model.sol('sol1').feature('t1').feature.remove('dDef');
 
 model.study('std1').setGenPlots(false);
 model.study('std1').feature('time').set('tunit', 'a');
-model.study('std1').feature('time').set('tlist', '0 1e6');
+model.study('std1').feature('time').set('tlist', '0 100');
 model.study('std1').feature('time').set('usertol', true);
-model.study('std1').feature('time').set('rtol', '1e-3');
+model.study('std1').feature('time').set('rtol', '1e-2');
 
 model.sol('sol1').attach('std1');
-model.sol('sol1').feature('v1').set('clist', {'0 1e6' '1e-6[a]'});
+model.sol('sol1').feature('v1').set('clist', {'0 100' '1e-6[a]'});
 model.sol('sol1').feature('t1').set('tunit', 'a');
-model.sol('sol1').feature('t1').set('tlist', '0 1e6');
-model.sol('sol1').feature('t1').set('rtol', '1e-3');
+model.sol('sol1').feature('t1').set('tlist', '0 100');
+model.sol('sol1').feature('t1').set('rtol', '1e-2');
 model.sol('sol1').feature('t1').set('maxorder', 2);
 model.sol('sol1').feature('t1').set('estrat', 'exclude');
 model.sol('sol1').feature('t1').set('plot', true);
@@ -514,13 +523,15 @@ model.sol('sol1').feature('t1').set('tout', 'tsteps');
 model.sol('sol1').feature('t1').set('initialstepbdfactive', true);
 model.sol('sol1').feature('t1').set('initialstepbdf', '1e-6');
 
-% model.study('std1').feature('time').activate('ev', true);
-
-% model.sol('sol1').runAll;
+model.study('std1').feature('time').activate('events', true);
 
 fprintf(1, 'Done.\n');
 
-return
+% =========================================================================
+% Creates events.
+% =========================================================================
+
+fprintf(1, '>>> Creating events... ');
 
 events = comp.physics.create('events', 'Events', 'geometry');
 events.label('Charging and Discharging Events');
@@ -556,3 +567,5 @@ discharging_event.setIndex('reInitValue', 0, 0, 0);
 discharging_event.setIndex('reInitName', 'is_discharging', 1, 0);
 discharging_event.setIndex('reInitValue', 0, 1, 0);
 discharging_event.setIndex('reInitValue', 1, 1, 0);
+
+fprintf(1, 'Done.\n');

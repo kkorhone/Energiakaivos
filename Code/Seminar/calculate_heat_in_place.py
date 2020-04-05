@@ -8,11 +8,7 @@ rho_rock = 2794.0
 Cp_rock = 682.0
 k_rock = 2.92
 
-tunnel_depth = 1440.0
-field_radius = 320.0
-
-def T_ground(z):
-    return T_surface - q_geothermal / k_rock * z
+energy_unit =  1.0 / (3600.0 * 1e9)
 
 class Voxel:
 
@@ -23,69 +19,93 @@ class Voxel:
         self.x_center = mean(xlim)
         self.y_center = mean(ylim)
         self.z_center = mean(zlim)
-        self.T_mean = T_ground(self.z_center)
+        self.T_mean = T_surface - q_geothermal / k_rock * mean(zlim)
 
-    def energy_release(self, T_ref):
-        delta_T = self.T_mean - T_ref
-        volume = (xlim[1] - xlim[0]) * (ylim[1] - ylim[0]) * (zlim[1] - zlim[0])
-        # J = W * s ==> GW / 1e9 * h / 3600
-        E = rho_rock * Cp_rock * volume * delta_T / (3600.0 * 1e9)
-        return E
+    def calculate_energy_release(self, T_reference):
+        delta_T = self.T_mean - T_reference
+        volume = (self.xlim[1] - self.xlim[0]) * (self.ylim[1] - self.ylim[0]) * (self.zlim[1] - self.zlim[0])
+        return rho_rock * Cp_rock * volume * delta_T * energy_unit
 
-def create_voxel(xlim, ylim, zlim):
-    z = mean(zlim)
-    if z <= -tunnel_depth:
-        dx = mean(xlim)
-        dy = mean(ylim)
-        dz = z + tunnel_depth
-        distance = sqrt(dx**2 + dy**2 + dz**2)
-        if distance <= field_radius:
-            return Voxel(xlim, ylim, zlim)
-    return None
+    @staticmethod
+    def create_voxel(xlim, ylim, zlim, tunnel_depth, field_radius):
+        z = mean(zlim)
+        if z <= -tunnel_depth:
+            dx = mean(xlim)
+            dy = mean(ylim)
+            dz = z + tunnel_depth
+            distance = sqrt(dx**2 + dy**2 + dz**2)
+            if distance <= field_radius:
+                return Voxel(xlim, ylim, zlim)
+        return None
 
-T_ref = 2.0
+def calculate_heat_in_place(dx, dy, dz, tunnel_depth, field_radius, T_reference):
 
-dx, dy, dz = 10, 10, 10
+    voxels = []
 
-voxels = []
+    x_range = arange(-field_radius-dx, field_radius+2*dx, dx)
+    y_range = arange(-field_radius-dy, field_radius+2*dy, dy)
+    z_range = arange(-tunnel_depth-field_radius-dz, -tunnel_depth+2*dz, dz)
 
-x_range = arange(-500, 500, dz)
-y_range = arange(-500, 500, dy)
-z_range = arange(-2000, -1000, dz)
+    x, y, z, T, E = [], [], [], [], []
 
-x, y, z, T, E = [], [], [], [], []
+    for i in range(len(z_range)):
+        zlim = [z_range[i], z_range[i]+dz]
+        for j in range(len(y_range)):
+            ylim = [y_range[j], y_range[j]+dy]
+            for k in range(len(x_range)):
+                xlim = [x_range[k], x_range[k]+dx]
+                voxel = Voxel.create_voxel(xlim, ylim, zlim, tunnel_depth, field_radius)
+                if voxel:
+                    voxels.append(voxel)
+                    x.append(voxel.x_center)
+                    y.append(voxel.y_center)
+                    z.append(voxel.z_center)
+                    T.append(voxel.T_mean)
+                    E.append(voxel.calculate_energy_release(T_reference))
+        print("%3.0f %%\b\b\b\b\b"% ((i+1)*100.0/len(z_range)), end="", flush=True)
 
-for i in range(len(z_range)):
-    zlim = [z_range[i], z_range[i]+dz]
-    for j in range(len(y_range)):
-        ylim = [y_range[j], y_range[j]+dy]
-        for k in range(len(x_range)):
-            xlim = [x_range[k], x_range[k]+dx]
-            voxel = create_voxel(xlim, ylim, zlim)
-            if voxel:
-                voxels.append(voxel)
-                x.append(voxel.x_center)
-                y.append(voxel.y_center)
-                z.append(voxel.z_center)
-                T.append(voxel.T_mean)
-                E.append(voxel.energy_release(T_ref))
-    print("%.3f %%"% ((i+1)*100.0/len(z_range)))
+    print("Done.")
 
-print("N=%d"%len(voxels))
-print("E=%f"%sum(E))
-print("min(E)=%f, max(E)=%f"%(min(E),max(E)))
-print("mean(T)=%f"%(sum(T)/len(T)))
-print("min(T)=%f max(T)=%f"%(min(T),max(T)))
+    voxel_E = sum(E)
 
-delta_T = (sum(T)/len(T)) - T_ref
-volume = 0.5 * 4.0 / 3.0 * pi * field_radius**3
-E = rho_rock * Cp_rock * volume * delta_T / (3600.0 * 1e9)
-print(volume*1e-6)
-print("total(E)=%f"%E)
+    delta_T = sum(T) / len(T) - T_reference
+    volume = 0.5 * 4.0 / 3.0 * pi * field_radius**3
+    sphere_E = rho_rock * Cp_rock * volume * delta_T * energy_unit
 
-fig = figure()
-ax = Axes3D(fig)
+    return voxel_E, sphere_E
 
-ax.scatter(x, y, z, s=T)
+T_reference = 2.0
+
+tunnel_depth = 1440.0
+field_radius = array([330.0, 430.0, 530.0, 630.0])
+
+voxel_E = zeros_like(field_radius)
+sphere_E = zeros_like(field_radius)
+
+for i in range(len(field_radius)):
+    voxel_E[i], sphere_E[i] = calculate_heat_in_place(1.0, 1.0, 1.0, tunnel_depth, field_radius[i], T_reference)
+    print("----------------------------------------")
+    print("field_radius=%f" % field_radius[i])
+    print("voxel_E=%.3f" % voxel_E[i])
+    print("sphere_E=%.3f" % sphere_E[i])
+
+comsol_E = array([836.85, 1893.6, 3625.8, 6229.4])
+
+plot(field_radius, voxel_E, "ro-")
+plot(field_radius, sphere_E, "bo-")
+plot(field_radius, comsol_E, "go-")
 
 show()
+
+# fig = figure()
+# ax = Axes3D(fig)
+# ax.scatter(x, y, z, s=T)
+# show()
+
+# 300.00	836.85	0.83685
+# 400.00	1893.6	1.8936
+# 500.00	3625.8	3.6258
+# 600.00	6229.4	6.2294
+
+# 300 = 850.578 / 850.570
+# 400 = 1924.804 / 1924.814

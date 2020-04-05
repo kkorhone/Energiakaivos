@@ -13,12 +13,12 @@ classdef CoaxialBoreholeHeatExchanger
     end
     
     properties (Constant)
-        INNER_CAP_MAX_ELEMENT_SIZE = 0.015
+        INNER_CAP_MAX_ELEMENT_SIZE = 0.015 % 0.015
         INNER_CAP_ELEMENT_SIZE = CoaxialBoreholeHeatExchanger.MESH_SIZE_EXTREMELY_FINE
-        OUTER_CAP_MAX_ELEMENT_GROWTH_RATE = 1.2
+        OUTER_CAP_MAX_ELEMENT_GROWTH_RATE = 1.2 % 1.2
         OUTER_CAP_ELEMENT_SIZE = CoaxialBoreholeHeatExchanger.MESH_SIZE_EXTREMELY_FINE
-        BOREHOLE_STRUCTURE_NUM_ELEMENTS = 100
-        BOREHOLE_STRUCTURE_ELEMENT_RATIO = 5
+        BOREHOLE_STRUCTURE_NUM_ELEMENTS = 100 % 100
+        BOREHOLE_STRUCTURE_ELEMENT_RATIO = 5 % 5
         CYLINDER_ELEMENT_SIZE = CoaxialBoreholeHeatExchanger.MESH_SIZE_FINER
     end
     
@@ -301,17 +301,17 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the parts of the borehole structure.
             
-            boreholeStructureSelectionTag = sprintf('borehole_structure_selection%d', obj.id);
+            tags{5} = sprintf('borehole_structure_selection%d', obj.id);
             
-            boreholeStructureSelection = geometry.create(boreholeStructureSelectionTag, 'UnionSelection');
+            boreholeStructureSelection = geometry.create(tags{5}, 'UnionSelection');
             boreholeStructureSelection.label(sprintf('Borehole Structure Selection %d', obj.id));
             boreholeStructureSelection.set('input', {tags{1}, tags{2}, tags{3}, tags{4}});
             
             % Creates a selection containing the borehole wall boundary.
             
-            tags{5} = sprintf('borehole_wall_selection%d', obj.id);
+            tags{6} = sprintf('borehole_wall_selection%d', obj.id);
             
-            boreholeWallSelection = geometry.create(tags{5}, 'CylinderSelection');
+            boreholeWallSelection = geometry.create(tags{6}, 'CylinderSelection');
             boreholeWallSelection.label(sprintf('Borehole Wall Selection %d', obj.id));
             
             boreholeWallSelection.set('entitydim', 2);
@@ -327,9 +327,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             bufferCollar = obj.boreholeCollar - obj.bufferRadius * obj.boreholeAxis;
             
-            tags{6} = sprintf('upper_cylinder_selection%d', obj.id);
+            tags{7} = sprintf('upper_cylinder_selection%d', obj.id);
             
-            upperCylinderSelection = geometry.create(tags{6}, 'CylinderSelection');
+            upperCylinderSelection = geometry.create(tags{7}, 'CylinderSelection');
             upperCylinderSelection.label(sprintf('Upper Cylinder Selection %d', obj.id));
             
             upperCylinderSelection.set('r', obj.bufferRadius+0.001);
@@ -342,9 +342,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the lower cylinder domain.
             
-            tags{7} = sprintf('lower_cylinder_selection%d', obj.id);
+            tags{8} = sprintf('lower_cylinder_selection%d', obj.id);
             
-            lowerCylinderSelection = geometry.create(tags{7}, 'CylinderSelection');
+            lowerCylinderSelection = geometry.create(tags{8}, 'CylinderSelection');
             lowerCylinderSelection.label(sprintf('Lower Cylinder Selection %d', obj.id));
             
             lowerCylinderSelection.set('r', obj.bufferRadius+0.001);
@@ -357,17 +357,17 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the upper and lower cylinders.
             
-            cylindersSelectionTag = sprintf('cylinders_selection%d', obj.id);
+            tags{9} = sprintf('cylinders_selection%d', obj.id);
             
-            cylindersSelection = geometry.create(cylindersSelectionTag, 'UnionSelection');
+            cylindersSelection = geometry.create(tags{9}, 'UnionSelection');
             cylindersSelection.label(sprintf('Cylinders Selection %d', obj.id));
-            cylindersSelection.set('input', {tags{6}, tags{7}});
+            cylindersSelection.set('input', {tags{7}, tags{8}});
             
             % Creates a selection containing the outer cap boundary.
             
-            tags{8} = sprintf('outer_cap_selection%d', obj.id);
+            tags{10} = sprintf('outer_cap_selection%d', obj.id);
             
-            outerCapSelection = geometry.create(tags{8}, 'CylinderSelection');
+            outerCapSelection = geometry.create(tags{10}, 'CylinderSelection');
             outerCapSelection.label(sprintf('Outer Cap Selection %d', obj.id));
             
             outerCapSelection.set('entitydim', 2);
@@ -382,9 +382,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the inner cap boundary.
             
-            tags{9} = sprintf('inner_cap_selection%d', obj.id);
+            tags{11} = sprintf('inner_cap_selection%d', obj.id);
             
-            innerCapSelection = geometry.create(tags{9}, 'CylinderSelection');
+            innerCapSelection = geometry.create(tags{11}, 'CylinderSelection');
             innerCapSelection.label(sprintf('Inner Cap Selection %d', obj.id));
             
             innerCapSelection.set('entitydim', 2);
@@ -398,9 +398,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the top inlet boundary.
             
-            tags{10} = sprintf('top_inlet_selection%d', obj.id);
+            tags{12} = sprintf('top_inlet_selection%d', obj.id);
             
-            topInletSelection = geometry.create(tags{10}, 'CylinderSelection');
+            topInletSelection = geometry.create(tags{12}, 'CylinderSelection');
             topInletSelection.label(sprintf('Top Inlet Selection %d', obj.id));
             
             topInletSelection.set('entitydim', 2);
@@ -414,9 +414,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the top outlet boundary.
             
-            tags{11} = sprintf('top_outlet_selection%d', obj.id);
+            tags{13} = sprintf('top_outlet_selection%d', obj.id);
             
-            topOutletSelection = geometry.create(tags{11}, 'CylinderSelection');
+            topOutletSelection = geometry.create(tags{13}, 'CylinderSelection');
             topOutletSelection.label(sprintf('Top Outlet Selection %d', obj.id));
             
             topOutletSelection.set('entitydim', 2);
@@ -430,9 +430,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the bottom outlet boundary.
             
-            tags{12} = sprintf('bottom_outlet_selection%d', obj.id);
+            tags{14} = sprintf('bottom_outlet_selection%d', obj.id);
             
-            bottomOutletSelection = geometry.create(tags{12}, 'CylinderSelection');
+            bottomOutletSelection = geometry.create(tags{14}, 'CylinderSelection');
             bottomOutletSelection.label(sprintf('Bottom Outlet Selection %d', obj.id));
             
             bottomOutletSelection.set('entitydim', 2);
@@ -446,9 +446,9 @@ classdef CoaxialBoreholeHeatExchanger
             
             % Creates a selection containing the bottom inlet boundary.
             
-            tags{13} = sprintf('bottom_inlet_selection%d', obj.id);
+            tags{15} = sprintf('bottom_inlet_selection%d', obj.id);
             
-            bottomIntletSelection = geometry.create(tags{13}, 'CylinderSelection');
+            bottomIntletSelection = geometry.create(tags{15}, 'CylinderSelection');
             bottomIntletSelection.label(sprintf('Bottom Inlet Selection %d', obj.id));
             
             bottomIntletSelection.set('entitydim', 2);

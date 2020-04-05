@@ -8,13 +8,18 @@ t, Q = loadtxt("simulation1a_total_heat_rate.txt", skiprows=8).T
 #plot(t,Q, "r.-"); show(); raise SystemExit
 
 f = interp1d(t, Q)
-t = linspace(1000, 2000, 1000000)
+t = linspace(0, 1000000, 1000000)
 #t = hstack((0, logspace(-6, 6, 10000000)))
-print(Q[-1])
+#print(Q[-1])
 Q = f(t)
-Q -= Q[-1]
+#Q -= Q[-1]
 print(trapz(Q*1e-9, t*365.2425*24))
-plot(t,Q); show()
+print(trapz((Q-Q[-1])*1e-9, t*365.2425*24))
+#plot(t,Q); show()
+semilogx(t,Q)
+plot(t,Q-Q[-1])
+grid()
+show()
 raise SystemExit
 # dt = 10
 # _t, _Q = [], []
