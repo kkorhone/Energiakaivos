@@ -36,6 +36,9 @@ params.T_fluid = 20;
 params.r_buffer = 1.0;
 params.buffer_width = 400;
 
+% Simulation parameters.
+params.t_duration = 50;
+
 model = init_quarter_symmetry_hemispherical_stress('ico_field_136_300m.txt', params);
 
 mphsave(model, 'stress_300m.mph');
