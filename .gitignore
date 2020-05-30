@@ -7,3 +7,12 @@
 *.status
 *.png
 *.asv
+*.pptx
+*.docx
+*.bak
+*.asv
+Code/Comparison/
+Code/EGU_Presentation/
+Code/Heat_Storage/
+Code/Miscellanous/
+Code/Quarter_Hemisphere_Tests/
