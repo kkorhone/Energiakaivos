@@ -11,6 +11,9 @@
 *.docx
 *.bak
 *.asv
+*.tfw
+*.tif
+*.xml
 Code/Comparison/
 Code/EGU_Presentation/
 Code/Heat_Storage/

@@ -157,6 +157,7 @@ def write_bhe_field(txt_name, bhe_collars, bhe_footers, bhe_factors):
 
 def make_ico_axes(level):
     bhe_axes, _ = icosa_sphere(level)
+    print("*** %d axes in total" % len(bhe_axes))
     i = where(bhe_axes[:, 2] <= 0)[0]
     return bhe_axes[i]
 
@@ -260,10 +261,10 @@ def make_test_field(borehole_tilts, sector_angle, field_depth, borehole_offset, 
         plot_bhe_field(bhe_collars, bhe_footers, "UV Field %d" % sum(bhe_factors))
         show()
 
-for l in [1,2,4,5,8]:
-    v,f = icosa_sphere(l)
-    print(l,len(f))
-raise SystemExit
+#for l in [1,2,4,5,8]:
+#    v,f = icosa_sphere(l)
+#    print(l,len(f))
+#raise SystemExit
 
 make_ico_field(5, 0.0, 0.25, 0.75)
 
