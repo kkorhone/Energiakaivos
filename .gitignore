@@ -14,6 +14,13 @@
 *.tfw
 *.tif
 *.xml
+*.cpg
+*.dbf
+*.sbn
+*.sbx
+*.shp
+*.shx
+*.xlsx
 Code/Comparison/
 Code/EGU_Presentation/
 Code/Heat_Storage/
